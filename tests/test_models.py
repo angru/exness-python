@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
+from exness.events import AccountStateEvent, HmrSnapshot, HmrUpdate, InstrumentEvent
 from exness.models import (
     AccountDetails,
     AccountState,
@@ -32,6 +33,17 @@ from exness.trading import TradingSnapshotEvent, TransactionEvent
     ("name", "schema", "model"),
     [
         ("account", "AccountDetailsResponse", AccountDetails),
+        ("account_state_event", "WSTradingEvent", AccountStateEvent),
+        ("instrument_new", "WSTradingEvent", InstrumentEvent),
+        ("instrument_upd", "WSTradingEvent", InstrumentEvent),
+        ("instrument_del", "WSTradingEvent", InstrumentEvent),
+        ("hmr_snapshot", "WSTradingEvent", HmrSnapshot),
+        ("hmr_update", "WSTradingEvent", HmrUpdate),
+        ("hmr_empty_snapshot", "WSTradingEvent", HmrSnapshot),
+        ("account_state_subscription", "WSEventsSubscribeRequestData", APIModel),
+        ("instruments_subscription", "WSEventsSubscribeRequestData", APIModel),
+        ("instruments_all_subscription", "WSEventsSubscribeRequestData", APIModel),
+        ("hmr_subscription", "WSEventsSubscribeRequestData", APIModel),
         ("tick", "WSTick", Tick),
         ("trading_snapshot", "WSTradingEvent", TradingSnapshotEvent),
         ("trading_subscription", "WSEventsSubscribeRequestData", APIModel),

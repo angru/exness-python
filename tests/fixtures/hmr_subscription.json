@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-events-1",
+  "subscribe": {
+    "event": "hmr",
+    "instruments": [
+      "EURUSD"
+    ]
+  }
+}

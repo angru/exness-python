@@ -1,0 +1,11 @@
+{
+  "event_type": "account_state_event",
+  "event_time": "2026-11-19T10:00:00Z",
+  "payload": {
+    "account_state": {
+      "balance": "12345678901234567890.123456789",
+      "equity": "100.00",
+      "used_margin": "0.00"
+    }
+  }
+}

@@ -17,7 +17,8 @@ The package has not been published to PyPI or verified against a live account.
 
 Python 3.11+. Both synchronous and asyncio clients support the same read-only REST
 operations. The asyncio client also streams live ticks and transactions over
-WebSocket. Trading mutations and account/instrument/HMR streams are follow-up work.
+WebSocket, including account-state, instrument and HMR events. Trading mutations
+remain future work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
@@ -192,7 +193,7 @@ of an injected REST transport. The transport dependency is pinned to websockets 
 Live interoperability remains unverified. The pinned contract and local TLS tests
 cover signing, subscriptions, errors, cancellation, reconnects, oversized messages,
 ping/pong and slow consumers. Transactions streaming is described below;
-account/instrument/HMR subscriptions remain future work.
+account, instrument and HMR subscriptions are described in the next section.
 
 ## History and precision
 
@@ -367,5 +368,85 @@ gaps precede retries, HTTP/TLS/protocol failures are terminal, and cancellation 
 client closure release sockets. The default message cap is 64 KiB, including the
 initial snapshot; explicitly increase it up to 16 MiB for larger accounts. There
 is no snapshot-arrival timeout beyond the caller's stream deadline and heartbeat.
-Other subscriptions (`account_state`, `instruments`, `hmr`) remain future work.
+Other server subscriptions are documented below.
 Live Exness interoperability has not been verified.
+
+## Account, instrument and HMR events
+
+```python
+from contextlib import aclosing
+from exness import ServerStreamGap, ServerStreamOptions
+from exness.events import HmrSnapshot
+
+async with aclosing(
+    client.stream_hmr(
+        ["EURUSD"],
+        options=ServerStreamOptions(max_reconnects=3),
+    )
+) as stream:
+    async for event in stream:
+        if isinstance(event, ServerStreamGap):
+            print("HMR state is stale")
+        elif isinstance(event, HmrSnapshot):
+            print("Replace baseline", len(event.periods))
+        else:
+            print("Changes", event.upserted_periods, event.removed_period_ids)
+```
+
+The asyncio client also provides `stream_account_state()` and
+`stream_instruments(["EURUSD"])` (or `["all"]`). Models live in `exness.events`;
+`ServerStreamOptions` and `ServerStreamGap` are exported from `exness`. Use
+`aclosing` when stopping early. Run one of these examples with the four `EXN_*`
+variables already configured:
+
+```sh
+uv run python examples/read_events.py account_state
+uv run python examples/read_events.py instruments all
+uv run python examples/read_events.py hmr EURUSD XAUUSD
+```
+
+Each call opens a dedicated `/ws/events` connection with one subscription and a
+fresh request ID. Multiple concurrent calls consume multiple server connections;
+check `GetLimits` / `get_limits` when choosing concurrency. These methods do not
+multiplex subscriptions or change instrument lists mid-connection. Close the
+iterator to unsubscribe by closing its connection; open a new stream to change
+selection. Reconnects reuse the copied selection and the existing signed transport.
+Options and gap types alias their tick equivalents; retries remain disabled by
+default, bounded when enabled, and preceded by visible gaps. Message/queue limits,
+heartbeat, redirect refusal and cancellation rules are unchanged.
+
+| Subscription | Events | Initial state and recovery |
+| --- | --- | --- |
+| `account_state` | `AccountStateEvent` | No initial snapshot. Each event is a fresh floating-state observation; a gap makes the prior observation stale until the next event. |
+| `instruments` | `InstrumentEvent`, action `new`, `upd`, `del` | No initial snapshot. `new`/`upd` contain full conditions; `del` removes the instrument from a cache. Missed changes or deletions require explicit reconciliation. |
+| `hmr` | `HmrSnapshot`, `HmrUpdate` | A fresh snapshot is mandatory before updates on every connection. Every snapshot, even empty, replaces the entire baseline. |
+
+Instrument subscriptions require a nonempty explicit list or exactly `["all"]`.
+HMR requires explicit instruments and rejects `all`. Duplicate or malformed names
+fail before networking; account availability is checked by the server, without a
+hidden REST lookup. Unsubscribed instrument events and unknown/wrong event kinds
+are terminal protocol errors. Lists are copied when constructing the iterator.
+
+An account-state event contains exact balance, equity and used-margin values. It
+is an observation, not a transaction history or a substitute for `transactions`.
+The SDK does not assume a fixed delivery interval or generate synthetic values.
+For instrument caches, treat a gap or termination as loss of continuity. Explicitly
+refresh the available instrument list and conditions through REST when needed;
+that REST fetch and concurrent WebSocket delivery are **not an atomic snapshot**.
+The SDK does not silently merge a REST result with events or mark the entire cache
+current merely because one instrument received an update.
+
+HMR arrays live at the event top level, without `payload` or `event_time`.
+Snapshots contain `periods`; updates contain `upserted_periods` and
+`removed_period_ids`, both required even when empty. Applications maintain their
+own map keyed by `period_id`: replace it on a snapshot, upsert changed periods and
+remove the listed IDs on updates. Removing an unknown ID is harmless. A gap or
+termination invalidates the baseline; the SDK refuses an update before the new
+snapshot. It yields data without automatic merging, sorting, replay or deduplication.
+
+A period preserves the server's complete `instruments` list (not filtered locally)
+and string leverage. `regular` schedule strings use calendar dates, while `periodic`
+strings use weekly schedules such as `Mon, 13:00:00`. Both are preserved verbatim;
+no timezone, recurrence calculation or "active now" flag is inferred. All synthetic
+fixtures are shared across SDKs and checked against the pinned OpenAPI. Live Exness
+interoperability remains unverified.

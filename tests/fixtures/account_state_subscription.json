@@ -1,0 +1,6 @@
+{
+  "id": "synthetic-events-1",
+  "subscribe": {
+    "event": "account_state"
+  }
+}

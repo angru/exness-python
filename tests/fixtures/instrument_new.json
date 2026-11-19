@@ -1,0 +1,54 @@
+{
+  "event_type": "instrument_event",
+  "event_time": "2026-11-19T10:00:00Z",
+  "action": "new",
+  "payload": {
+    "instrument": "EURUSD",
+    "description": "Euro vs US Dollar",
+    "international_name": "EUR/USD",
+    "category": "Forex",
+    "base_currency": "EUR",
+    "quote_currency": "USD",
+    "margin_currency": "EUR",
+    "point_digits": 5,
+    "calc_mode": "forex",
+    "exec_mode": "market",
+    "margin_percent": "1",
+    "contract_size": "100000",
+    "volume_min": "0.01",
+    "volume_max": "200",
+    "volume_step": "0.01",
+    "swap_long": "-6.35",
+    "swap_short": "2.14",
+    "swap_multipliers": [
+      {
+        "day": "WED",
+        "multiplier": 3
+      }
+    ],
+    "trade_mode": "enabled",
+    "order_types": [
+      "market",
+      "limit",
+      "stop"
+    ],
+    "filling_modes": [
+      "fok",
+      "ioc"
+    ],
+    "trade_sessions": [
+      {
+        "trade_mode": "enabled",
+        "week_start_time": "Mon, 00:00:00",
+        "week_end_time": "Fri, 23:59:59"
+      }
+    ],
+    "commission_settings": {
+      "commission_type": "per_lot_per_side",
+      "commission_value": {
+        "amount": "3.50",
+        "currency": "USD"
+      }
+    }
+  }
+}

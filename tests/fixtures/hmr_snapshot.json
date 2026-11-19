@@ -1,0 +1,26 @@
+{
+  "event_type": "hmr_snapshot",
+  "periods": [
+    {
+      "period_id": "701",
+      "event_type": "regular",
+      "instruments": [
+        "EURUSD",
+        "EURGBP"
+      ],
+      "leverage": "10",
+      "start_time": "2026-11-19 11:00:00",
+      "end_time": "2026-11-19 12:00:00"
+    },
+    {
+      "period_id": "702",
+      "event_type": "periodic",
+      "instruments": [
+        "EURUSD"
+      ],
+      "leverage": "20",
+      "start_time": "Mon, 13:00:00",
+      "end_time": "Mon, 14:00:00"
+    }
+  ]
+}

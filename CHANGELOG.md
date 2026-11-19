@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0a6 — 2026-11-19
+
+- Add typed asyncio account-state, instrument and HMR subscriptions, reusing the
+  signed WebSocket transport, bounded reconnects and explicit gap events.
+- Validate copied instrument selections, support instrument-only ["all"], preserve
+  HMR schedule strings and require a fresh HMR snapshot before incremental updates.
+- Add shared Go fixtures, pinned-contract validation, local TLS recovery/cleanup
+  tests and a runnable example with subscription-specific cache recovery guidance.
+- Live interoperability remains unverified; trading mutations remain unsupported.
+
 ## 0.1.0a5 — 2026-11-19
 
 - Add asyncio transactions streaming with typed snapshots, deltas and processing

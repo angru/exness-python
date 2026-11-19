@@ -50,11 +50,23 @@ ambiguity and the request-selected validation approach are documented in
 - Handle balance changes, partial closes and rejected/failed processing results.
 - Share contract fixtures with Go and verify recovery boundaries on local TLS servers.
 
-## Next: remaining server events
+## Completed: account, instrument and HMR events
 
-- Account/instrument/HMR events with subscription-specific recovery semantics.
-- Reuse bounded reconnect policy, cancellation, resubscription and observable gaps.
-- Fake-server tests for malformed messages, disconnects and slow consumers.
+- Dedicated typed subscriptions share transport limits, signed handshakes, opt-in
+  reconnects and explicit gaps. Instrument lists are copied and validated locally.
+- Instrument selection supports exactly ["all"]; HMR uses explicit names only.
+- HMR requires a fresh snapshot on every connection and supports empty/replacement
+  snapshots and deltas. Schedule strings remain unchanged without inferred timezone.
+- Account and instrument streams have no initial snapshot; recovery limitations
+  and caller-owned cache reconciliation are explicit in README.md.
+- Shared fixtures, pinned-schema checks and local TLS tests cover all event kinds,
+  validation, lifecycle actions, reconnection boundaries and cleanup.
+
+## Next: release readiness
+
+- Review the public API and examples together, then prepare a tagged alpha release.
+- Add an explicitly enabled read-only live smoke workflow when credentials and a
+  test account are available; retain the unverified-live disclosure until then.
 
 ## Release gates
 

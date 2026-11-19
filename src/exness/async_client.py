@@ -24,6 +24,17 @@ from exness._common import (
 )
 from exness.auth import Credentials, _Signer
 from exness.errors import ProtocolError, TransportError
+from exness.events import (
+    AccountStateEvent,
+    HmrEvent,
+    InstrumentEvent,
+    ServerStreamGap,
+    ServerStreamOptions,
+    _account_decoder,
+    _hmr_decoder,
+    _instrument_decoder,
+    _subscription_instruments,
+)
 from exness.models import (
     AccessPoint,
     AccountDetails,
@@ -43,7 +54,7 @@ from exness.models import (
     Tick,
     TradingSnapshot,
 )
-from exness.ticks import TickStreamGap, TickStreamOptions, stream_ticks
+from exness.ticks import TickStreamGap, TickStreamOptions, _stream, stream_ticks
 from exness.trading import TradingEvent, TradingStreamGap, TradingStreamOptions, stream_trading
 
 ModelT = TypeVar("ModelT", bound=APIModel)
@@ -355,3 +366,64 @@ class AsyncExnessClient:
         snapshot before applying transaction deltas. Use aclosing() on early exit.
         """
         return stream_trading(self, options or TradingStreamOptions(), ssl_context)
+
+    def stream_account_state(
+        self,
+        *,
+        options: ServerStreamOptions | None = None,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> AsyncGenerator[AccountStateEvent | ServerStreamGap, None]:
+        """Periodic floating state; no initial snapshot or transaction history.
+
+        Use aclosing() on early exit. A gap invalidates the last observed value.
+        """
+        return _stream(
+            self,
+            "events",
+            {"event": "account_state"},
+            options or ServerStreamOptions(),
+            ssl_context,
+            _account_decoder,
+        )
+
+    def stream_instruments(
+        self,
+        instruments: Sequence[str],
+        *,
+        options: ServerStreamOptions | None = None,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> AsyncGenerator[InstrumentEvent | ServerStreamGap, None]:
+        """Full instrument updates; ['all'] is supported, with no initial snapshot.
+
+        Lists are copied. A gap requires explicit cache reconciliation by the caller.
+        """
+        names = _subscription_instruments(instruments, allow_all=True)
+        return _stream(
+            self,
+            "events",
+            {"event": "instruments", "instruments": names},
+            options or ServerStreamOptions(),
+            ssl_context,
+            lambda request_id: _instrument_decoder(names, request_id),
+        )
+
+    def stream_hmr(
+        self,
+        instruments: Sequence[str],
+        *,
+        options: ServerStreamOptions | None = None,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> AsyncGenerator[HmrEvent | ServerStreamGap, None]:
+        """HMR periods: replace state on every snapshot, apply deltas only afterward.
+
+        Requires explicit instruments (no 'all'). Each connection needs a new baseline.
+        """
+        names = _subscription_instruments(instruments, allow_all=False)
+        return _stream(
+            self,
+            "events",
+            {"event": "hmr", "instruments": names},
+            options or ServerStreamOptions(),
+            ssl_context,
+            _hmr_decoder,
+        )

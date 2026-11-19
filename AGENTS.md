@@ -18,6 +18,8 @@ and documentation; reply to the user in Russian. Python >=3.11, uv only.
   as gap events. Never enable signed-header logging, redirects or implicit proxies.
 - Transactions require a fresh snapshot on every connection; never apply deltas
   to a stale baseline or confuse processing rejections with subscription errors.
+- HMR requires a fresh snapshot before updates on every connection. Preserve
+  schedule strings; account/instrument streams do not promise initial snapshots.
 - Review upstream drift with `uv run python -m tools.check_contract` (or offline
   `--candidate PATH`). Snapshot adoption requires reviewing both SDKs and recording
   provenance; the checker never updates the snapshot itself.

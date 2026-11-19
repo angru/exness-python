@@ -1,0 +1,19 @@
+{
+  "event_type": "hmr_update",
+  "upserted_periods": [
+    {
+      "period_id": "702",
+      "event_type": "periodic",
+      "instruments": [
+        "EURUSD"
+      ],
+      "leverage": "30",
+      "start_time": "Mon, 13:00:00",
+      "end_time": "Mon, 14:00:00"
+    }
+  ],
+  "removed_period_ids": [
+    "701",
+    "999"
+  ]
+}
