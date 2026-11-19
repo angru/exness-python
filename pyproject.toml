@@ -49,7 +49,7 @@ dev = [
 packages = ["src/exness"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/contracts", "/examples", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
+include = ["/src", "/tests", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
 
 [tool.ruff]
 target-version = "py311"
@@ -61,7 +61,7 @@ select = ["E", "F", "I", "UP", "B", "ANN", "RUF", "SIM", "C4", "PGH"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests", "examples"]
+files = ["src", "tests", "examples", "tools"]
 plugins = ["pydantic.mypy"]
 warn_unreachable = true
 
@@ -72,11 +72,12 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--strict-config --strict-markers --cov=exness --cov-report=term-missing --cov-fail-under=90"
+pythonpath = ["."]
+addopts = "--strict-config --strict-markers --cov=exness --cov=tools --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
 branch = true
-source = ["exness"]
+source = ["exness", "tools"]
 
 [tool.coverage.report]
 exclude_also = ['if TYPE_CHECKING:', 'if __name__ == "__main__":']

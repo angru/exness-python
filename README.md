@@ -231,6 +231,12 @@ CI runs checks on
 Python 3.11–3.14, builds the distribution, and smoke-tests the installed wheel.
 See [the contract notes](contracts/README.md) for upstream sources and update rules.
 
+Check for public API changes with `uv run python -m tools.check_contract` from this
+checkout. Use `--candidate PATH` for offline comparison and `--json-report PATH`
+for a full report. Exit codes: 0 unchanged, 1 review needed, 2 check failed. The
+command leaves the pinned snapshot untouched; see the
+[contract maintenance workflow](contracts/README.md#checking-for-upstream-changes).
+
 See [ROADMAP.md](ROADMAP.md) for development that can proceed without a live account.
 SDK code is available under the [MIT license](LICENSE); third-party reference
 material is identified in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

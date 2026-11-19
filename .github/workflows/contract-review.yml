@@ -1,0 +1,31 @@
+name: Contract review
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked
+      - name: Compare official contract
+        run: |
+          mkdir contract-review
+          uv run python -m tools.check_contract \
+            --json-report contract-review/report.json \
+            --save-candidate contract-review/upstream.yaml \
+            > contract-review/report.txt
+      - name: Upload review artifacts even when drift is found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-review
+          path: contract-review/
+          if-no-files-found: ignore
+          retention-days: 14

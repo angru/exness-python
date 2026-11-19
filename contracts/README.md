@@ -41,9 +41,65 @@ not live interoperability. The schema includes some `nullable` keywords alongsid
 OpenAPI 3.1.1; fixtures avoid null for those fields, while the corresponding SDK
 SL/TP fields accept null as documented.
 
-For updates, download to a temporary file, compare the version and schema diff,
-update affected models/methods/fixtures, run all checks, and record the new date and
-hash here. Never overwrite the snapshot silently during builds or tests.
+## Checking for upstream changes
+
+From the Python checkout, use the maintenance command (development dependencies
+installed with `uv sync --locked`):
+
+```sh
+uv run python -m tools.check_contract
+```
+
+It downloads only the public source URL above, without credentials, redirects,
+environment proxies or retries. It never modifies the pinned snapshot. To save
+the full JSON report and original candidate bytes, choose **new** file paths:
+
+```sh
+uv run python -m tools.check_contract \
+  --json-report /tmp/exness-contract-report.json \
+  --save-candidate /tmp/exness-contract-candidate.yaml
+```
+
+For an offline comparison (including a previously saved candidate):
+
+```sh
+uv run python -m tools.check_contract --candidate /tmp/exness-contract-candidate.yaml
+```
+
+`--baseline PATH` selects an alternative baseline. Exit codes are **0** for no
+structural changes, **1** for changes requiring review, and **2** for input,
+download or output errors. Different byte hashes with equivalent parsed content
+return 0 and are identified as formatting/comment/mapping-order changes. Output
+files must not exist; the command refuses to overwrite snapshots or prior reports.
+
+Reports include both SHA-256 hashes and API versions, added/removed operations,
+and changes grouped by operations, parameters, models and other contract sections.
+Locations are JSON Pointers; before/after values are complete in JSON and shortened
+in terminal output. Required fields, enum values, request/response schemas, security
+settings, examples, descriptions and extensions all participate in comparison.
+
+This is a conservative structural diff, not a compatibility checker or a complete
+OpenAPI validator. Mapping order is ignored; array order is retained (including
+parameters, enum and required arrays), so reordering can require manual review.
+`$ref` strings are compared without dereferencing or external requests. A changed
+shared schema may affect multiple methods in both SDKs. Discovery and signing
+guides outside the YAML still require separate review. YAML uses JSON-compatible
+scalar interpretation: quoted values remain strings, unquoted JSON numbers and
+booleans become numbers and booleans, and ordinary dates/on/off remain strings.
+Aliases, explicit YAML tags, duplicate keys, excessive nesting and inputs over
+8 MiB are rejected. Remote responses have a 20-second HTTPX phase timeout.
+
+The manually triggered **Contract review** GitHub Actions workflow runs the same
+command and uploads the report and candidate. A detected change fails its compare
+step with exit code 1; a failed download uses exit code 2. Normal CI remains offline
+apart from installing dependencies. There is no scheduled check or automatic PR.
+
+After reviewing a candidate, update affected Python and Go methods/models and
+shared fixtures, then explicitly replace the Python snapshot, record its date and
+hash here and in the Go contract-source notes, and run both repositories' checks.
+Keep the snapshot unmodified, including known upstream ambiguities. Never replace
+it silently during builds or tests. The tool is included in the source distribution,
+not the runtime wheel; the Go module has no Python dependency.
 
 The TypeScript SDK is not used as a source dependency. Tests use the publicly known
 RFC 8032 test key; no production data or credentials are present.

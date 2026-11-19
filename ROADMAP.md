@@ -28,10 +28,12 @@ ambiguity and the request-selected validation approach are documented in
 - Tests cover concurrent discovery, cancelled callers, cache refresh, async generator
   termination and real TLS timeout/cancellation/connection cleanup.
 
-## Next: contract maintenance
+## Completed: contract maintenance
 
-- An explicit contract-update command that reports schema changes for review; no
-  silent specification replacement during builds.
+- An explicit check command compares the official YAML or a local candidate with
+  the snapshot, reports structural changes and writes optional review artifacts.
+- A manual GitHub workflow runs the same comparison. Snapshot adoption stays an
+  explicit reviewed edit; changes require assessment in both SDKs.
 
 ## Streaming
 
