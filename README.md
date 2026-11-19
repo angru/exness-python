@@ -164,8 +164,16 @@ uv build
 ```
 
 Ruff enforces annotations and formatting; mypy runs in strict mode over source,
-tests and examples. `py.typed` ships in the wheel. pytest uses synthetic keys and
-HTTPX MockTransport, with a 90% branch-aware coverage gate. CI runs checks on
+tests and examples. `py.typed` ships in the wheel. pytest uses synthetic keys,
+HTTPX MockTransport and loopback HTTPS servers, with a 90% branch-aware coverage gate.
+Hypothesis generates bounded reproducible cases for exact decimals, key formats,
+origins, cursor encoding/signing and pagination termination. Real TLS tests cover
+header/body timeouts, truncated responses, redirect refusal, signatures, connection
+reuse and closure. Test certificates are generated in temporary directories and
+explicitly trusted; TLS verification stays enabled. Local socket binding is required,
+but no Exness account or external service is used. The synchronous client has no
+context-cancellation API; explicit cancellation tests belong to the Go SDK.
+CI runs checks on
 Python 3.11–3.14, builds the distribution, and smoke-tests the installed wheel.
 See [the contract notes](contracts/README.md) for upstream sources and update rules.
 

@@ -10,6 +10,8 @@ and documentation; reply to the user in Russian. Python >=3.11, uv only.
   `uv run pytest`, and `uv build` before delivery.
 - Test signing against transmitted bytes and validate response fixtures against
   the pinned OpenAPI schemas. Tests must run offline with synthetic keys.
+- TLS integration tests need loopback socket binding. Keep Hypothesis cases
+  bounded and reproducible; no live API access is needed for the test suite.
 - Never log credentials, signed headers, or private key material. Do not add live
   trading tests or automatic retries as incidental changes.
 - This repository owns its Git history and dependencies. Do not include the vault.

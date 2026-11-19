@@ -12,11 +12,17 @@ Both SDKs share response fixtures and a signing vector. The upstream candle oneO
 ambiguity and the request-selected validation approach are documented in
 `contracts/README.md`. Live interoperability remains a separate gate.
 
-## Next: strengthen offline verification
+## Completed: generated inputs and local HTTPS verification
 
-- Property-based tests for decimal precision, URL encoding, key formats and cursors.
-- A local HTTP test server to exercise transport failures and timeouts beyond mocks.
-- Record cross-language behavior differences explicitly and add compatibility cases.
+- Hypothesis tests cover decimal precision, key formats, HTTPS origins, URL encoding
+  and cursor/pagination invariants using bounded reproducible examples.
+- Real local TLS connections cover header/body timeouts, truncated responses,
+  redirects, signature verification, connection reuse and closure.
+- Go additionally tests explicit context cancellation. Python remains synchronous;
+  decimals preserve exact numeric values, while Go also retains original spelling.
+
+## Next: async REST and contract maintenance
+
 - An explicit contract-update command that reports schema changes for review; no
   silent specification replacement during builds.
 

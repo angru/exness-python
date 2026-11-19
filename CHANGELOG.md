@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add reproducible Hypothesis tests for exact decimal values, key formats, origins,
+  cursor encoding/signing and pagination termination.
+- Test real loopback TLS connections for header/body timeouts, truncated responses,
+  redirects, signatures, connection reuse and closure, without live credentials.
+- Runtime API and package version remain unchanged.
+
 ## 0.1.0a2 — 2026-11-19
 
 - Complete read-only REST coverage with instrument conditions, candle history and
