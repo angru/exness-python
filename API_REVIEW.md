@@ -72,7 +72,7 @@ Retained contracts: break a Go iterator to clean up; Python async generators nee
 active consumer tasks; closing sockets does not interrupt arbitrary consumer code
 or promise cancellation of pending discovery/handshake/backoff tasks. Go `Close`
 cancels owned stream contexts (including these waits); in-flight REST may finish.
-Python clients belong to one event loop; Go clients support concurrent use.
+Python asyncio clients belong to one event loop; Go clients support concurrent use.
 
 Transactions and HMR require fresh snapshots before deltas on each connection.
 All gaps and terminations invalidate continuity. Account/instrument streams do not
