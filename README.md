@@ -15,7 +15,8 @@ The package has not been published to PyPI or verified against a live account.
 - Structured errors, finite timeouts, no automatic retries or redirects.
 
 Python 3.11+. Both synchronous and asyncio clients support the same read-only REST
-operations. WebSocket streams and trading operations are follow-up work.
+operations. The asyncio client also streams live ticks over WebSocket. Trading
+events and trading operations are follow-up work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
@@ -124,7 +125,72 @@ The client owns its HTTP pool and any injected `httpx.AsyncBaseTransport`. Use
 `TaskGroup` does this for sibling tasks when one fails. History generators do not
 prefetch pages; early termination makes no extra request. Use `contextlib.aclosing`
 when explicitly managing a partially consumed generator. Async REST supports
-asyncio; Trio and WebSocket streaming are not implemented.
+asyncio; Trio is not implemented.
+
+## Live ticks
+
+Inside an `AsyncExnessClient` context:
+
+```python
+from contextlib import aclosing
+from exness import TickStreamGap, TickStreamOptions
+
+async with aclosing(
+    client.stream_ticks(
+        ["EURUSD", "XAUUSD"],
+        options=TickStreamOptions(max_reconnects=3),
+    )
+) as stream:
+    async for event in stream:
+        if isinstance(event, TickStreamGap):
+            print("Connection interrupted; missed ticks cannot be replayed")
+        else:
+            print(event.instrument, event.bid, event.ask, event.timestamp)
+```
+
+Run `uv run python examples/read_ticks.py` with the same `EXN_*` settings and
+optional `EXN_INSTRUMENT`. This subscribes to market data; it does not trade.
+The account Access Point is discovered through REST, and each WSS handshake is
+freshly signed as GET on `/v1/server-events/accounts/{account_id}/ws/ticks`.
+A new request id and subscription are sent for each connection. Instrument names
+must be nonempty, valid and unique; availability and account limits are server rules.
+
+Ticks use finite `float` bid/ask values as specified by the market-data schema;
+missing fields remain `None`. A received tick must identify a subscribed instrument.
+Malformed or unknown messages fail with `ProtocolError`; the SDK does not invent
+an acknowledgement format. Subscription rejections raise `WebSocketAPIError`;
+its `error_message` is untrusted and omitted from exception text.
+
+Reconnection is **off by default**. `max_reconnects` is a lifetime budget (0–1000),
+never reset after receiving a tick. Transport failures and close codes 1001, 1006,
+1011 and 1012 can consume that budget. Before each attempt, `TickStreamGap` reports
+the attempt number, delay and optional close code. Delays double from 1 second to
+a 30-second cap by default; configure them with `TickStreamOptions`. The last known
+tick may arrive again after resubscription; ticks are neither replayed nor deduplicated.
+No automatic discovery refresh occurs during reconnects; refresh explicitly after
+account migration. No hidden retry is added to REST calls.
+
+Normal close (1000) ends iteration. Other close codes, including policy violations
+(1008) and oversized messages (1009), raise `StreamClosed`. HTTP handshake failures
+(including 429/503), invalid TLS certificates and subscription errors are terminal.
+Exhausted reconnect budgets raise `TransportError`. Task cancellation propagates
+unchanged, including during backoff. Use `aclosing` for early breaks; closing the
+client also closes active WebSocket connections. Cancel and await active tasks
+before closing the client, as with async REST.
+
+The default message limit is 64 KiB (configurable up to 16 MiB), with a 16-frame
+receive queue and transport backpressure. Slow consumers are not given an unbounded
+SDK queue; a server-side overflow may close the connection. Ping/pong keepalive
+uses 20-second intervals/timeouts. There is no tick inactivity timeout because
+markets can be quiet; use `asyncio.timeout` for an application deadline. Opening
+defaults to 15 seconds; close handshake timeout is 3 seconds. Redirects, environment
+proxies and compression are disabled. Transport debug logging is disabled to avoid
+logging signed headers. `ssl_context=` customizes WebSocket TLS only, independently
+of an injected REST transport. The transport dependency is pinned to websockets 15.x.
+
+Live interoperability remains unverified. The pinned contract and local TLS tests
+cover signing, subscriptions, errors, cancellation, reconnects, oversized messages,
+ping/pong and slow consumers. Server-event streams are not yet implemented.
 
 ## History and precision
 

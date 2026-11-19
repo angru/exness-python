@@ -1,0 +1,4 @@
+{
+  "id": "synthetic-ticks-1",
+  "subscribe": {"event": "ticks", "instruments": ["EURUSD"]}
+}

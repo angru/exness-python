@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Callable
+import ssl
+from collections.abc import AsyncGenerator, Awaitable, Callable, Sequence
 from datetime import datetime
 from types import TracebackType
 from typing import Self, TypeVar
 
 import httpx
+from websockets.asyncio.client import ClientConnection
 
 from exness._common import (
     _candle_params,
@@ -38,8 +40,10 @@ from exness.models import (
     Limits,
     OperationStatus,
     OrderHistoryItem,
+    Tick,
     TradingSnapshot,
 )
+from exness.ticks import TickStreamGap, TickStreamOptions, stream_ticks
 
 ModelT = TypeVar("ModelT", bound=APIModel)
 ItemT = TypeVar("ItemT")
@@ -84,6 +88,7 @@ class AsyncExnessClient:
         self._signer = _Signer(credentials)
         self._access_point: str | None = None
         self._discovery_lock = asyncio.Lock()
+        self._tick_connections: set[ClientConnection] = set()
         self._http = httpx.AsyncClient(
             timeout=timeout, follow_redirects=False, trust_env=False, transport=transport
         )
@@ -101,7 +106,12 @@ class AsyncExnessClient:
         await self.aclose()
 
     async def aclose(self) -> None:
-        await self._http.aclose()
+        try:
+            await asyncio.gather(
+                *(connection.close() for connection in tuple(self._tick_connections))
+            )
+        finally:
+            await self._http.aclose()
 
     def _ensure_open(self) -> None:
         if self._http.is_closed:
@@ -317,3 +327,17 @@ class AsyncExnessClient:
             ),
             lambda cursor: self.get_deals_history(cursor=cursor, limit=limit),
         )
+
+    def stream_ticks(
+        self,
+        instruments: Sequence[str],
+        *,
+        options: TickStreamOptions | None = None,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> AsyncGenerator[Tick | TickStreamGap, None]:
+        """Read live ticks. Use aclosing() when stopping iteration early.
+
+        Reconnects are opt-in and emit TickStreamGap before every retry.
+        TLS customization applies to WebSocket connections only.
+        """
+        return stream_ticks(self, instruments, options or TickStreamOptions(), ssl_context)

@@ -34,3 +34,21 @@ class APIError(ExnessError):
         self.retry_after = retry_after
         # Do not echo untrusted server text, which could contain request credentials.
         super().__init__(f"Exness API returned HTTP {status_code} (code={code})")
+
+
+class WebSocketAPIError(ExnessError):
+    """Subscription error; error_message is untrusted server text."""
+
+    def __init__(self, request_id: str, code: int, error_message: str) -> None:
+        self.request_id = request_id
+        self.code = code
+        self.error_message = error_message
+        super().__init__(f"Exness WebSocket returned code {code}")
+
+
+class StreamClosed(ExnessError):
+    """A terminal close code; the server's arbitrary close reason is not exposed."""
+
+    def __init__(self, code: int) -> None:
+        self.code = code
+        super().__init__(f"Exness WebSocket closed with code {code}")

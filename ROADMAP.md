@@ -35,10 +35,17 @@ ambiguity and the request-selected validation approach are documented in
 - A manual GitHub workflow runs the same comparison. Snapshot adoption stays an
   explicit reviewed edit; changes require assessment in both SDKs.
 
-## Streaming
+## Completed: asyncio live ticks (0.1.0a4)
 
-- WebSocket ticks first, then trading events, with bounded reconnect policy,
-  cancellation, resubscription and observable gaps.
+- Signed WSS handshakes and tick subscriptions through the account Access Point.
+- Typed tick/error models, bounded buffering, cancellation and connection cleanup.
+- Opt-in lifetime reconnect budgets, resubscription and explicit gap notifications.
+- Local TLS tests cover disconnects, slow consumers, protocol failures and redirects.
+
+## Next: server-event streaming
+
+- Trading events with snapshot reconciliation, then account/instrument/HMR events.
+- Reuse bounded reconnect policy, cancellation, resubscription and observable gaps.
 - Fake-server tests for malformed messages, disconnects and slow consumers.
 
 ## Release gates

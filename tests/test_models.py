@@ -21,7 +21,9 @@ from exness.models import (
     Limits,
     OperationStatus,
     OrderHistoryItem,
+    Tick,
     TradingSnapshot,
+    WebSocketErrorResponse,
 )
 
 
@@ -29,6 +31,9 @@ from exness.models import (
     ("name", "schema", "model"),
     [
         ("account", "AccountDetailsResponse", AccountDetails),
+        ("tick", "WSTick", Tick),
+        ("tick_subscription", "WSTicksSubscribeRequestData", APIModel),
+        ("ws_error", "WsErrorResponse", WebSocketErrorResponse),
         ("instruments", "InstrumentNameListResponse", Instruments),
         ("snapshot", "TradingStateSnapshot", TradingSnapshot),
         ("orders", "OrdersHistoryResponse", HistoryPage[OrderHistoryItem]),

@@ -27,7 +27,20 @@ It is reference material from Exness, not an SDK-generated specification.
 | `get_operation_status` | `getOperationStatus` |
 
 All nine read-only REST operations in the pinned Trading YAML are covered, plus
-Gateway discovery. WebSocket handshakes are not included in REST coverage.
+Gateway discovery. The asyncio client also implements `getWSTicks`; its actual
+handshake is GET and the nested `id + subscribe` payload is a WebSocket message.
+WebSocket handshakes are not included in REST coverage.
+
+Tick streaming follows the pinned `WSTick`, `WSTicksSubscribeRequestData` and
+`WsErrorResponse` schemas and the official
+[subscription guide](https://www.exness-api.com/trading/get-started/subscribe-to-websocket-events).
+The schema leaves tick fields optional; the SDK preserves missing fields but
+requires a subscribed instrument to identify each received tick. No success-ACK
+message schema is specified, so unknown envelopes fail rather than being silently
+ignored. Bid/ask are finite JSON doubles, unlike trading monetary Decimal fields.
+Reconnect gap notifications are SDK events, not wire messages. The service offers
+no tick replay; resubscription may repeat the last available quote. Closing the
+connection ends the fixed subscription; dynamic subscribe/unsubscribe is not exposed.
 
 SDK choices: accept only HTTPS origins, do not follow redirects, cache discovery
 until explicit refresh, do not retry automatically, require aware input datetimes,

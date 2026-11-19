@@ -353,3 +353,18 @@ class OperationStatus(APIModel):
     def is_terminal(self) -> bool:
         """A terminal outcome can be success, rejection or failure."""
         return self.status != "pending"
+
+
+class Tick(APIModel):
+    """Market-data doubles; missing fields remain None as in WSTick."""
+
+    instrument: Instrument | None = None
+    bid: FiniteFloat | None = None
+    ask: FiniteFloat | None = None
+    timestamp: AwareDatetime | None = None
+
+
+class WebSocketErrorResponse(APIModel):
+    id: str
+    code: int
+    error_message: str

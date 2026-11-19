@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.1.0a4 — 2026-11-19
+
+- Add asyncio WebSocket ticks with signed GET handshakes, typed market-data models,
+  subscription errors and terminal close errors. Add websockets 15.x as transport.
+- Add explicit finite reconnect budgets, resubscription and gap notifications;
+  default to no reconnects. Refuse redirects, disable environment proxies and
+  transport header logging, bound messages/queues and propagate cancellation.
+- Add shared tick/subscription/error fixtures and local TLS tests for disconnects,
+  slow consumers, ping/pong, oversized messages and cancellation. Live API remains
+  unverified; server-event streaming and trading writes are not implemented.
 
 - Add a typed repository maintenance command for official or offline OpenAPI
   comparison, with JSON reports, byte hashes, operation summaries and explicit
