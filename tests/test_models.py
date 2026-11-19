@@ -25,6 +25,7 @@ from exness.models import (
     TradingSnapshot,
     WebSocketErrorResponse,
 )
+from exness.trading import TradingSnapshotEvent, TransactionEvent
 
 
 @pytest.mark.parametrize(
@@ -32,6 +33,11 @@ from exness.models import (
     [
         ("account", "AccountDetailsResponse", AccountDetails),
         ("tick", "WSTick", Tick),
+        ("trading_snapshot", "WSTradingEvent", TradingSnapshotEvent),
+        ("trading_subscription", "WSEventsSubscribeRequestData", APIModel),
+        ("transaction_balance", "WSTradingEvent", TransactionEvent),
+        ("transaction_rejected", "WSTradingEvent", TransactionEvent),
+        ("transaction_partial_close", "WSTradingEvent", TransactionEvent),
         ("tick_subscription", "WSTicksSubscribeRequestData", APIModel),
         ("ws_error", "WsErrorResponse", WebSocketErrorResponse),
         ("instruments", "InstrumentNameListResponse", Instruments),

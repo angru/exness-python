@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0a5 — 2026-11-19
+
+- Add asyncio transactions streaming with typed snapshots, deltas and processing
+  results. Require a fresh snapshot before transactions on each connection.
+- Reuse signed tick transport, bounded reconnects, explicit gaps and cleanup;
+  distinguish operation rejections from subscription errors.
+- Add shared Go fixtures, offline contract checks, TLS recovery/cancellation tests,
+  and a runnable example with caller-owned state-recovery guidance.
+- Live API interoperability remains unverified. Account/instrument/HMR streams
+  and trading writes are not implemented.
+
 ## 0.1.0a4 — 2026-11-19
 
 - Add asyncio WebSocket ticks with signed GET handshakes, typed market-data models,

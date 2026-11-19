@@ -42,9 +42,17 @@ ambiguity and the request-selected validation approach are documented in
 - Opt-in lifetime reconnect budgets, resubscription and explicit gap notifications.
 - Local TLS tests cover disconnects, slow consumers, protocol failures and redirects.
 
-## Next: server-event streaming
+## Completed: transactions stream (0.1.0a5)
 
-- Trading events with snapshot reconciliation, then account/instrument/HMR events.
+- Typed snapshots and transaction deltas reuse the signed tick transport.
+- Require a fresh snapshot before transactions on every connection; emit gaps on
+  reconnect and document caller-owned cache replacement/history reconciliation.
+- Handle balance changes, partial closes and rejected/failed processing results.
+- Share contract fixtures with Go and verify recovery boundaries on local TLS servers.
+
+## Next: remaining server events
+
+- Account/instrument/HMR events with subscription-specific recovery semantics.
 - Reuse bounded reconnect policy, cancellation, resubscription and observable gaps.
 - Fake-server tests for malformed messages, disconnects and slow consumers.
 

@@ -1,0 +1,9 @@
+{
+  "event_type": "transaction_event",
+  "operation_id": "789",
+  "client_request_id": "synthetic-request",
+  "status": "rejected",
+  "error_code": 4000,
+  "error_message": "SYNTHETIC_REJECTION",
+  "payload": {}
+}

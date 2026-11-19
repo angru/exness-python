@@ -12,11 +12,12 @@ The package has not been published to PyPI or verified against a live account.
 - Instrument conditions, candle history (bid/ask/both), and existing operation status.
 - Orders/deals history, individual pages and lazy iteration with opaque cursors.
 - Pydantic response models, exact `Decimal` money/price/volume fields, timezone-aware dates.
-- Structured errors, finite timeouts, no automatic retries or redirects.
+- Structured errors, finite REST timeouts, no automatic REST retries or redirects.
+- Asyncio tick/transaction streams with opt-in bounded reconnects and visible gaps.
 
 Python 3.11+. Both synchronous and asyncio clients support the same read-only REST
-operations. The asyncio client also streams live ticks over WebSocket. Trading
-events and trading operations are follow-up work.
+operations. The asyncio client also streams live ticks and transactions over
+WebSocket. Trading mutations and account/instrument/HMR streams are follow-up work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
@@ -190,7 +191,8 @@ of an injected REST transport. The transport dependency is pinned to websockets 
 
 Live interoperability remains unverified. The pinned contract and local TLS tests
 cover signing, subscriptions, errors, cancellation, reconnects, oversized messages,
-ping/pong and slow consumers. Server-event streams are not yet implemented.
+ping/pong and slow consumers. Transactions streaming is described below;
+account/instrument/HMR subscriptions remain future work.
 
 ## History and precision
 
@@ -306,3 +308,64 @@ command leaves the pinned snapshot untouched; see the
 See [ROADMAP.md](ROADMAP.md) for development that can proceed without a live account.
 SDK code is available under the [MIT license](LICENSE); third-party reference
 material is identified in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Trading events
+
+```python
+from contextlib import aclosing
+from exness import TradingStreamGap, TradingStreamOptions
+from exness.trading import TradingSnapshotEvent
+
+async with aclosing(
+    client.stream_trading(
+        options=TradingStreamOptions(max_reconnects=3),
+    )
+) as stream:
+    async for event in stream:
+        if isinstance(event, TradingStreamGap):
+            print("State is stale; waiting for a fresh snapshot")
+        elif isinstance(event, TradingSnapshotEvent):
+            print("New baseline", len(event.payload.positions))
+        else:
+            print("Changed positions", len(event.payload.positions), event.status)
+```
+
+`client` is an `AsyncExnessClient`. Run `uv run python examples/read_trading.py`
+with the same four `EXN_*` variables as the other examples. Models live in
+`exness.trading`; options and gap types are also exported from `exness`.
+`TradingStreamOptions` and `TradingStreamGap` alias the tick equivalents so both
+streams have identical transport settings. Use `aclosing` on early exit.
+
+The `transactions` subscription sends a full `trading_state_snapshot`, followed by
+`transaction_event` deltas. The SDK requires a valid snapshot before yielding any
+transaction on **every** connection, including after reconnect. A transaction
+received before that boundary is a terminal protocol error. Repeated snapshots
+are accepted as replacement baselines. Each subscription uses a fresh request ID.
+
+Recovery belongs to the caller's application state:
+
+1. On a gap, mark the previous cache stale immediately; on termination (including
+   normal close), it is no longer live either.
+2. Replace cached active orders, open positions and account state with the next
+   snapshot. Do not merge a new baseline into stale state.
+3. Apply subsequent transaction payloads as **changed entities**, not full lists.
+   Retain an open position after a partial close; remove closed positions and
+   terminal orders from an active-state view. Missing entities are not deletions.
+4. Use order/deal history separately if missed historical changes matter. Snapshots
+   cannot reconstruct missed transactions. There is no resume token, replay or
+   exactly-once guarantee; the SDK does not merge, deduplicate or poll implicitly.
+
+`status` is optional: `success`, `rejected` and `failed` are supported. Rejected or
+failed operations with empty payloads are still **data events**, even when they
+contain `error_message`; subscription errors instead raise/return `WebSocketAPIError`.
+An absent status is not inferred as success. `operation_id` can be absent for
+balance or system changes. Monetary values remain exact decimals; transaction
+account state also requires `leverage`. Server error fields are untrusted data.
+
+Transport behavior is shared with ticks: reconnects are opt-in and lifetime-bounded,
+gaps precede retries, HTTP/TLS/protocol failures are terminal, and cancellation and
+client closure release sockets. The default message cap is 64 KiB, including the
+initial snapshot; explicitly increase it up to 16 MiB for larger accounts. There
+is no snapshot-arrival timeout beyond the caller's stream deadline and heartbeat.
+Other subscriptions (`account_state`, `instruments`, `hmr`) remain future work.
+Live Exness interoperability has not been verified.

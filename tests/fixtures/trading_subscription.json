@@ -1,0 +1,6 @@
+{
+  "id": "synthetic-transactions-1",
+  "subscribe": {
+    "event": "transactions"
+  }
+}

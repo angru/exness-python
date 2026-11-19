@@ -1,0 +1,39 @@
+{
+  "event_type": "trading_state_snapshot",
+  "payload": {
+    "account_state": {
+      "balance": "12345678901234567890.123456789",
+      "equity": "100.00",
+      "used_margin": "0.00"
+    },
+    "orders": [
+      {
+        "order_id": "1001",
+        "order_type": "limit",
+        "state": "placed",
+        "create_time": "2026-01-01T00:00:00+00:00",
+        "instrument": "EURUSD",
+        "direction": "buy",
+        "price": "1.08000",
+        "volume": "0.01",
+        "stop_loss_price": "1.07000",
+        "take_profit_price": "1.09000"
+      }
+    ],
+    "positions": [
+      {
+        "position_id": "2001",
+        "direction": "buy",
+        "instrument": "EURUSD",
+        "state": "open",
+        "create_time": "2026-01-01T00:00:00+00:00",
+        "volume": "0.01",
+        "initial_volume": "0.02",
+        "open_price": "1.08000",
+        "margin_rate": "1.0",
+        "commission": "-0.20",
+        "swap": "0.00"
+      }
+    ]
+  }
+}

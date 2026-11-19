@@ -8,9 +8,9 @@ import logging
 import math
 import re
 import ssl
-from collections.abc import AsyncGenerator, Sequence
+from collections.abc import AsyncGenerator, Callable, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 from uuid import uuid4
 
 from pydantic import ValidationError
@@ -65,7 +65,7 @@ class TickStreamOptions:
 
 @dataclass(frozen=True)
 class TickStreamGap:
-    """A connection was interrupted; missed ticks cannot be replayed or counted."""
+    """A connection was interrupted; missed stream messages cannot be replayed or counted."""
 
     reconnect_attempt: int
     delay: float
@@ -101,26 +101,48 @@ def _tick(message: str | bytes, instruments: tuple[str, ...], request_id: str) -
     return tick
 
 
-async def stream_ticks(
+EventT = TypeVar("EventT")
+
+
+def stream_ticks(
     client: AsyncExnessClient,
     instruments: Sequence[str],
     options: TickStreamOptions,
     ssl_context: ssl.SSLContext | None,
 ) -> AsyncGenerator[Tick | TickStreamGap, None]:
     names = _instruments(instruments)
+    return _stream(
+        client,
+        "ticks",
+        {"event": "ticks", "instruments": names},
+        options,
+        ssl_context,
+        lambda request_id: lambda message: _tick(message, names, request_id),
+    )
+
+
+async def _stream(
+    client: AsyncExnessClient,
+    endpoint: str,
+    subscribe: dict[str, object],
+    options: TickStreamOptions,
+    ssl_context: ssl.SSLContext | None,
+    decoder_factory: Callable[[str], Callable[[str | bytes], EventT]],
+) -> AsyncGenerator[EventT | TickStreamGap, None]:
     attempts = 0
     delay = options.reconnect_delay
-    path = f"/v1/server-events/accounts/{client._account_id}/ws/ticks"
+    path = f"/v1/server-events/accounts/{client._account_id}/ws/{endpoint}"
     while True:
         client._ensure_open()
         host = await client.discover()
         request_id = str(uuid4())
         subscription = json.dumps(
-            {"id": request_id, "subscribe": {"event": "ticks", "instruments": names}},
+            {"id": request_id, "subscribe": subscribe},
             separators=(",", ":"),
         )
         if len(subscription.encode()) > options.max_message_bytes:
             raise ValueError("Subscription exceeds max_message_bytes")
+        decode = decoder_factory(request_id)
         code: int | None = None
         try:
             async with _NoRedirectConnect(
@@ -138,16 +160,16 @@ async def stream_ticks(
                 max_queue=16,
             ) as websocket:
                 client._ensure_open()
-                client._tick_connections.add(websocket)
+                client._ws_connections.add(websocket)
                 try:
                     await websocket.send(subscription)
                     while True:
                         client._ensure_open()
                         message = await websocket.recv()
                         client._ensure_open()
-                        yield _tick(message, names, request_id)
+                        yield decode(message)
                 finally:
-                    client._tick_connections.discard(websocket)
+                    client._ws_connections.discard(websocket)
         except InvalidStatus as error:
             raise APIError(
                 error.response.status_code, retry_after=error.response.headers.get("Retry-After")
@@ -164,7 +186,9 @@ async def stream_ticks(
             pass
         client._ensure_open()
         if attempts >= options.max_reconnects:
-            raise TransportError("Tick stream disconnected; reconnect budget exhausted") from None
+            raise TransportError(
+                "WebSocket stream disconnected; reconnect budget exhausted"
+            ) from None
         attempts += 1
         yield TickStreamGap(attempts, delay, code)
         await asyncio.sleep(delay)

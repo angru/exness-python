@@ -44,6 +44,7 @@ from exness.models import (
     TradingSnapshot,
 )
 from exness.ticks import TickStreamGap, TickStreamOptions, stream_ticks
+from exness.trading import TradingEvent, TradingStreamGap, TradingStreamOptions, stream_trading
 
 ModelT = TypeVar("ModelT", bound=APIModel)
 ItemT = TypeVar("ItemT")
@@ -88,7 +89,7 @@ class AsyncExnessClient:
         self._signer = _Signer(credentials)
         self._access_point: str | None = None
         self._discovery_lock = asyncio.Lock()
-        self._tick_connections: set[ClientConnection] = set()
+        self._ws_connections: set[ClientConnection] = set()
         self._http = httpx.AsyncClient(
             timeout=timeout, follow_redirects=False, trust_env=False, transport=transport
         )
@@ -108,7 +109,7 @@ class AsyncExnessClient:
     async def aclose(self) -> None:
         try:
             await asyncio.gather(
-                *(connection.close() for connection in tuple(self._tick_connections))
+                *(connection.close() for connection in tuple(self._ws_connections))
             )
         finally:
             await self._http.aclose()
@@ -341,3 +342,16 @@ class AsyncExnessClient:
         TLS customization applies to WebSocket connections only.
         """
         return stream_ticks(self, instruments, options or TickStreamOptions(), ssl_context)
+
+    def stream_trading(
+        self,
+        *,
+        options: TradingStreamOptions | None = None,
+        ssl_context: ssl.SSLContext | None = None,
+    ) -> AsyncGenerator[TradingEvent | TradingStreamGap, None]:
+        """Subscribe to transactions; every connection requires a fresh snapshot.
+
+        A gap invalidates the caller's cached state. Replace it with the next
+        snapshot before applying transaction deltas. Use aclosing() on early exit.
+        """
+        return stream_trading(self, options or TradingStreamOptions(), ssl_context)
