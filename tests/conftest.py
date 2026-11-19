@@ -11,6 +11,11 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
 def credentials() -> Credentials:
     return Credentials("exnsk-synthetic-test", SEED + PUBLIC)
 

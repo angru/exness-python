@@ -16,8 +16,9 @@ from pydantic import TypeAdapter, ValidationError
 from test_client import client_for, discovery, verify_request
 
 from exness import ConfigurationError, Credentials, ProtocolError
+from exness._common import _base_url
 from exness.auth import _Signer
-from exness.client import _base_url, _iterate
+from exness.client import _iterate
 from exness.models import DecimalValue, HistoryPage
 
 generated = settings(max_examples=100, derandomize=True, database=None, deadline=None)

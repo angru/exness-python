@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "exness-python"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Unofficial typed, read-only client for the Exness Trading API"
 readme = "README.md"
 license = "MIT"
@@ -42,6 +42,7 @@ dev = [
   "types-jsonschema>=4,<5",
   "referencing>=0.36,<0.38",
   "hypothesis>=6,<7",
+  "anyio>=4,<5",
 ]
 
 [tool.hatch.build.targets.wheel]

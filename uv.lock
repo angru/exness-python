@@ -340,7 +340,7 @@ wheels = [
 
 [[package]]
 name = "exness-python"
-version = "0.1.0a2"
+version = "0.1.0a3"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -350,6 +350,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "anyio" },
     { name = "hypothesis" },
     { name = "jsonschema" },
     { name = "mypy" },
@@ -371,6 +372,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "anyio", specifier = ">=4,<5" },
     { name = "hypothesis", specifier = ">=6,<7" },
     { name = "jsonschema", specifier = ">=4.23,<5" },
     { name = "mypy", specifier = ">=1.15,<2" },

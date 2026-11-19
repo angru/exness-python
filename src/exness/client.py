@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
-import math
-import re
 from collections.abc import Callable, Iterator
-from datetime import UTC, datetime
+from datetime import datetime
 from types import TracebackType
-from typing import Self, TypeVar, get_args
+from typing import Self, TypeVar
 
 import httpx
-from pydantic import ValidationError
 
+from exness._common import (
+    _candle_params,
+    _configuration,
+    _continuation,
+    _discovered_host,
+    _history_params,
+    _instrument_path,
+    _operation_id,
+    _response,
+)
 from exness.auth import Credentials, _Signer
-from exness.errors import APIError, ConfigurationError, ProtocolError, TransportError
+from exness.errors import ProtocolError, TransportError
 from exness.models import (
     AccessPoint,
     AccountDetails,
@@ -30,73 +37,11 @@ from exness.models import (
     Limits,
     OperationStatus,
     OrderHistoryItem,
-    PublicError,
     TradingSnapshot,
 )
 
 ModelT = TypeVar("ModelT", bound=APIModel)
 ItemT = TypeVar("ItemT")
-
-
-def _base_url(value: str) -> str:
-    try:
-        url = httpx.URL(value)
-    except httpx.InvalidURL:
-        raise ConfigurationError("Invalid API host URL") from None
-    if (
-        url.scheme != "https"
-        or not url.host
-        or url.userinfo
-        or url.path != "/"
-        or url.query
-        or url.fragment
-        or "?" in value
-        or "#" in value
-    ):
-        raise ConfigurationError(
-            "API host must be an HTTPS origin without credentials, path or query"
-        )
-    return str(url).rstrip("/")
-
-
-def _utc(value: datetime) -> str:
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise ValueError("History times must include a timezone")
-    return value.astimezone(UTC).isoformat()
-
-
-def _history_params(
-    *,
-    from_time: datetime | None,
-    to_time: datetime | None,
-    cursor: str | None,
-    limit: int,
-    instrument: str | None,
-    filter_name: str,
-    filter_value: str | None,
-) -> dict[str, str | int]:
-    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 200:
-        raise ValueError("History limit must be an integer between 1 and 200")
-    params: dict[str, str | int] = {"limit": limit}
-    if cursor is not None:
-        if not cursor or any(v is not None for v in (from_time, to_time, instrument, filter_value)):
-            raise ValueError("A nonempty cursor can only be combined with limit")
-        params["cursor"] = cursor
-        return params
-    if from_time is None:
-        raise ValueError("from_time is required unless a cursor is provided")
-    params["from"] = _utc(from_time)
-    if to_time is not None:
-        params["to"] = _utc(to_time)
-        if to_time <= from_time:
-            raise ValueError("to_time must be later than from_time")
-    if instrument is not None:
-        if not re.fullmatch(r"[A-Za-z0-9._-]{1,11}", instrument):
-            raise ValueError("Invalid instrument name")
-        params["instrument"] = instrument
-    if filter_value is not None:
-        params[filter_name] = filter_value
-    return params
 
 
 def _iterate(
@@ -106,13 +51,7 @@ def _iterate(
     seen: set[str] = set()
     page = first()
     while True:
-        cursor = page.next_cursor
-        if page.has_more is True and not cursor:
-            raise ProtocolError("History has_more is true without a continuation cursor")
-        if page.has_more is False and cursor:
-            raise ProtocolError("History has_more is false with a continuation cursor")
-        if cursor and cursor in seen:
-            raise ProtocolError("History returned a repeated continuation cursor")
+        cursor = _continuation(page, seen)
         yield from page.items
         if not cursor:
             return
@@ -136,11 +75,7 @@ class ExnessClient:
         timeout: float = 15.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        if not re.fullmatch(r"[1-9][0-9]{0,19}", account_id) or int(account_id) >= 2**64:
-            raise ConfigurationError("account_id must be a positive uint64 decimal string")
-        if not math.isfinite(timeout) or timeout <= 0:
-            raise ConfigurationError("timeout must be positive and finite")
-        self._discovery_url = _base_url(discovery_url)
+        self._discovery_url = _configuration(account_id, discovery_url, timeout)
         self._account_id = account_id
         self._signer = _Signer(credentials)
         self._access_point: str | None = None
@@ -181,24 +116,7 @@ class ExnessClient:
             response = self._http.send(request)
         except httpx.RequestError:
             raise TransportError("Exness request failed at the transport layer") from None
-        if response.status_code != 200:
-            code: int | None = None
-            message: str | None = None
-            try:
-                error = PublicError.model_validate_json(response.content)
-                code, message = error.code, error.error_message
-            except ValidationError:
-                pass
-            raise APIError(
-                response.status_code,
-                code=code,
-                error_message=message,
-                retry_after=response.headers.get("Retry-After"),
-            )
-        try:
-            return model.model_validate_json(response.content)
-        except ValidationError:
-            raise ProtocolError(f"Invalid {model.__name__} response") from None
+        return _response(response, model)
 
     def discover(self, *, refresh: bool = False) -> str:
         """Resolve and cache the account Access Point; refresh explicitly after migration."""
@@ -210,13 +128,7 @@ class ExnessClient:
                 AccessPoint,
                 {"account_id": self._account_id},
             )
-            if result.account_id is not None and result.account_id != self._account_id:
-                raise ProtocolError("Discovery returned a different account")
-            try:
-                access_point = _base_url(result.access_point)
-            except ConfigurationError:
-                raise ProtocolError("Discovery returned an invalid HTTPS origin") from None
-            self._access_point = access_point
+            self._access_point = _discovered_host(result, self._account_id)
         return self._access_point
 
     def get_account(self) -> AccountDetails:
@@ -249,8 +161,7 @@ class ExnessClient:
 
     def get_instrument_conditions(self, instrument: str) -> InstrumentConditions:
         """Read precision, volume constraints, sessions and commissions for one instrument."""
-        if not re.fullmatch(r"[A-Za-z0-9._-]{1,11}", instrument) or instrument in (".", ".."):
-            raise ValueError("Invalid instrument name for a path segment")
+        _instrument_path(instrument)
         result = self._get(
             self.discover(),
             f"/v1/configuration/accounts/{self._account_id}/instruments/{instrument}/conditions",
@@ -262,8 +173,7 @@ class ExnessClient:
 
     def get_operation_status(self, operation_id: str) -> OperationStatus:
         """Read an existing operation once; rejected/failed outcomes are returned as data."""
-        if not re.fullmatch(r"[0-9]{1,20}", operation_id) or int(operation_id) >= 2**64:
-            raise ValueError("operation_id must be a uint64 decimal string")
+        _operation_id(operation_id)
         result = self._get(
             self.discover(),
             f"/v1/trading/accounts/{self._account_id}/operations/{operation_id}",
@@ -288,28 +198,14 @@ class ExnessClient:
         Dynamic count/range caps come from get_limits() and are enforced by the
         server. No extra request, splitting, retries or automatic sorting occurs.
         """
-        if not re.fullmatch(r"[A-Za-z0-9._-]{1,11}", instrument):
-            raise ValueError("Invalid instrument name")
-        if timeframe not in get_args(CandleTimeframe):
-            raise ValueError("Invalid candle timeframe")
-        if price_type not in get_args(CandlePriceType):
-            raise ValueError("Invalid candle price_type")
-        if (to_time is None) == (count is None):
-            raise ValueError("Provide exactly one of to_time or count")
-        params: dict[str, str | int] = {
-            "instrument": instrument,
-            "timeframe": timeframe,
-            "from": _utc(from_time),
-            "price_type": price_type,
-        }
-        if to_time is not None:
-            params["to"] = _utc(to_time)
-            if to_time <= from_time:
-                raise ValueError("to_time must be later than from_time")
-        if count is not None:
-            if isinstance(count, bool) or not isinstance(count, int) or count == 0:
-                raise ValueError("count must be a nonzero integer")
-            params["count"] = count
+        params = _candle_params(
+            instrument=instrument,
+            timeframe=timeframe,
+            from_time=from_time,
+            to_time=to_time,
+            count=count,
+            price_type=price_type,
+        )
         return self._get(
             self.discover(),
             f"/v1/market-data/accounts/{self._account_id}/candles",
@@ -327,8 +223,6 @@ class ExnessClient:
         instrument: str | None = None,
         order_state: ClosedOrderState | None = None,
     ) -> HistoryPage[OrderHistoryItem]:
-        if order_state is not None and order_state not in ("filled", "cancelled", "rejected"):
-            raise ValueError("Invalid closed order state")
         params = _history_params(
             from_time=from_time,
             to_time=to_time,
@@ -355,17 +249,6 @@ class ExnessClient:
         instrument: str | None = None,
         deal_type: DealType | None = None,
     ) -> HistoryPage[DealHistoryItem]:
-        if deal_type is not None and deal_type not in (
-            "open",
-            "close",
-            "balance",
-            "null_compensation",
-            "swap_fee",
-            "admin_fee",
-            "dividend",
-            "exness_dollar",
-        ):
-            raise ValueError("Invalid deal type")
         params = _history_params(
             from_time=from_time,
             to_time=to_time,

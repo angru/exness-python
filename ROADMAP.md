@@ -18,17 +18,23 @@ ambiguity and the request-selected validation approach are documented in
   and cursor/pagination invariants using bounded reproducible examples.
 - Real local TLS connections cover header/body timeouts, truncated responses,
   redirects, signature verification, connection reuse and closure.
-- Go additionally tests explicit context cancellation. Python remains synchronous;
-  decimals preserve exact numeric values, while Go also retains original spelling.
+- Python decimals preserve exact numeric values, while Go also retains original
+  spelling. Both SDKs test explicit cancellation through their async/context APIs.
 
-## Next: async REST and contract maintenance
+## Completed: asyncio REST (0.1.0a3)
+
+- `AsyncExnessClient` covers the same read-only methods and lazy history iteration.
+- Signing, parameter validation, response models and cursor rules are shared.
+- Tests cover concurrent discovery, cancelled callers, cache refresh, async generator
+  termination and real TLS timeout/cancellation/connection cleanup.
+
+## Next: contract maintenance
 
 - An explicit contract-update command that reports schema changes for review; no
   silent specification replacement during builds.
 
-## Async and streaming
+## Streaming
 
-- An async REST client sharing signing, validation and models with the sync client.
 - WebSocket ticks first, then trading events, with bounded reconnect policy,
   cancellation, resubscription and observable gaps.
 - Fake-server tests for malformed messages, disconnects and slow consumers.

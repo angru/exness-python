@@ -1,12 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.1.0a3 — 2026-11-19
+
+- Add `AsyncExnessClient` for asyncio with all read-only REST methods, async
+  context management and lazy async history generators.
+- Share parameter validation, response decoding, discovery validation and cursor
+  rules with the synchronous client; preserve its public method signatures.
+- Serialize concurrent discovery, propagate task cancellation unchanged, and
+  release the discovery lock after cancellation or errors. Cached reads continue
+  during explicit refresh; unsuccessful refresh preserves the previous host.
+- Exercise async wire signatures, concurrent calls, cancellation, transport cleanup
+  and real TLS failures. Add a TaskGroup-based account/history example.
 
 - Add reproducible Hypothesis tests for exact decimal values, key formats, origins,
   cursor encoding/signing and pagination termination.
 - Test real loopback TLS connections for header/body timeouts, truncated responses,
   redirects, signatures, connection reuse and closure, without live credentials.
-- Runtime API and package version remain unchanged.
+- Source release only; live interoperability and PyPI publication remain unverified.
 
 ## 0.1.0a2 — 2026-11-19
 

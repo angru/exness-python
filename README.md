@@ -14,8 +14,8 @@ The package has not been published to PyPI or verified against a live account.
 - Pydantic response models, exact `Decimal` money/price/volume fields, timezone-aware dates.
 - Structured errors, finite timeouts, no automatic retries or redirects.
 
-Python 3.11+. The current release is synchronous and read-only. Async,
-WebSocket streams and trading operations are follow-up work.
+Python 3.11+. Both synchronous and asyncio clients support the same read-only REST
+operations. WebSocket streams and trading operations are follow-up work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
@@ -72,6 +72,59 @@ The Gateway is used only for discovery; account calls use its returned Access Po
 connection pool; close them or use `with`. Use one client per account. Environment
 proxy and netrc settings are ignored (`trust_env=False`); inject an HTTPX transport
 for custom networking. Do not log credentials or signed headers.
+
+## Asyncio client
+
+`AsyncExnessClient` uses the same credentials, parameters, response models and
+exceptions as `ExnessClient`. Await REST methods and use `async for` for history:
+
+```python
+import asyncio
+import os
+from datetime import UTC, datetime, timedelta
+
+from exness import AsyncExnessClient, Credentials
+
+
+async def main() -> None:
+    async with AsyncExnessClient(
+        credentials=Credentials(os.environ["EXN_API_KEY"], os.environ["EXN_PRIVATE_KEY"]),
+        account_id=os.environ["EXN_ACCOUNT_ID"],
+        discovery_url=os.environ["EXN_DISCOVERY_BASE_URL"],
+    ) as client:
+        async with asyncio.timeout(30), asyncio.TaskGroup() as group:
+            account = group.create_task(client.get_account())
+            snapshot = group.create_task(client.get_snapshot())
+        print(account.result().account_id, snapshot.result().account_state.balance)
+
+        async with asyncio.timeout(30):
+            async for item in client.iter_orders_history(
+                from_time=datetime.now(UTC) - timedelta(days=1), limit=100
+            ):
+                print(item.order.order_id)
+
+
+asyncio.run(main())
+```
+
+Run `uv run python examples/read_account_async.py` for the complete example.
+Use one async client per account within one asyncio event loop. Share it among
+tasks; do not share across threads or event loops. Concurrent initial reads share
+a cached discovery result. `await client.discover(refresh=True)` explicitly
+refreshes it; cached reads can use the previous host while refresh is running.
+Failed or cancelled discovery releases its lock and does not replace the cache.
+
+`asyncio.CancelledError` propagates unchanged. A waiting task can be cancelled
+without cancelling another task's discovery. HTTPX's `timeout` is a timeout for
+individual network phases, not an overall operation deadline; use
+`asyncio.timeout(...)` to bound discovery waiting and a complete call or iteration.
+
+The client owns its HTTP pool and any injected `httpx.AsyncBaseTransport`. Use
+`async with` or `await client.aclose()`; cancel and await active tasks before closing.
+`TaskGroup` does this for sibling tasks when one fails. History generators do not
+prefetch pages; early termination makes no extra request. Use `contextlib.aclosing`
+when explicitly managing a partially consumed generator. Async REST supports
+asyncio; Trio and WebSocket streaming are not implemented.
 
 ## History and precision
 
@@ -171,8 +224,9 @@ origins, cursor encoding/signing and pagination termination. Real TLS tests cove
 header/body timeouts, truncated responses, redirect refusal, signatures, connection
 reuse and closure. Test certificates are generated in temporary directories and
 explicitly trusted; TLS verification stays enabled. Local socket binding is required,
-but no Exness account or external service is used. The synchronous client has no
-context-cancellation API; explicit cancellation tests belong to the Go SDK.
+but no Exness account or external service is used. Async tests also verify task
+cancellation before headers and during body reads, discovery coordination and
+cleanup after cancellation. The synchronous client has no task-cancellation API.
 CI runs checks on
 Python 3.11–3.14, builds the distribution, and smoke-tests the installed wheel.
 See [the contract notes](contracts/README.md) for upstream sources and update rules.
