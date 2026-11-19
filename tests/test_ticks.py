@@ -440,3 +440,44 @@ async def test_transport_failure_budget_and_outgoing_limit(
         ) as stream:
             with pytest.raises(ValueError, match="Subscription exceeds"):
                 await anext(stream)
+
+
+async def test_closing_refuses_new_work_before_socket_cleanup_finishes(
+    credentials: Credentials,
+    tls_contexts: tuple[ssl.SSLContext, ssl.SSLContext],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def handler(ws: ServerConnection) -> None:
+        await ws.recv()
+        await ws.send(fixture_bytes("tick").decode())
+        await ws.wait_closed()
+
+    async with (
+        tick_client(credentials, tls_contexts, handler) as client,
+        aclosing(client.stream_ticks(["EURUSD"], ssl_context=tls_contexts[1])) as stream,
+    ):
+        await anext(stream)
+        connection = next(iter(client._ws_connections))
+        original_close = connection.close
+
+        async def blocked_close() -> None:
+            entered.set()
+            await release.wait()
+            await original_close()
+
+        monkeypatch.setattr(connection, "close", blocked_close)
+        task = asyncio.create_task(client.aclose())
+        try:
+            await asyncio.wait_for(entered.wait(), 3)
+            with pytest.raises(RuntimeError, match="closed"):
+                await client.get_account()
+            async with aclosing(client.stream_account_state()) as other:
+                with pytest.raises(RuntimeError, match="closed"):
+                    await anext(other)
+            with pytest.raises(RuntimeError, match="closed"):
+                await client.__aenter__()
+        finally:
+            release.set()
+            await asyncio.wait_for(task, 3)

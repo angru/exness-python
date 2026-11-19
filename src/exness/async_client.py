@@ -100,6 +100,7 @@ class AsyncExnessClient:
         self._signer = _Signer(credentials)
         self._access_point: str | None = None
         self._discovery_lock = asyncio.Lock()
+        self._closing = False
         self._ws_connections: set[ClientConnection] = set()
         self._http = httpx.AsyncClient(
             timeout=timeout, follow_redirects=False, trust_env=False, transport=transport
@@ -118,6 +119,8 @@ class AsyncExnessClient:
         await self.aclose()
 
     async def aclose(self) -> None:
+        # Refuse new work before the first await, including during socket cleanup.
+        self._closing = True
         try:
             await asyncio.gather(
                 *(connection.close() for connection in tuple(self._ws_connections))
@@ -126,7 +129,7 @@ class AsyncExnessClient:
             await self._http.aclose()
 
     def _ensure_open(self) -> None:
-        if self._http.is_closed:
+        if self._closing or self._http.is_closed:
             raise RuntimeError("AsyncExnessClient is closed")
 
     async def _get(

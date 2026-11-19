@@ -10,7 +10,7 @@ class ConfigurationError(ExnessError, ValueError):
 
 
 class TransportError(ExnessError):
-    """A request failed before an HTTP response was received."""
+    """A REST request or WebSocket stream failed at the transport layer."""
 
 
 class ProtocolError(ExnessError):

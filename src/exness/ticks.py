@@ -72,6 +72,11 @@ class TickStreamGap:
     close_code: int | None = None
 
 
+# Neutral aliases for every WebSocket subscription; retain historical type identity.
+StreamOptions = TickStreamOptions
+StreamGap = TickStreamGap
+
+
 def _instruments(values: Sequence[str]) -> tuple[str, ...]:
     if isinstance(values, (str, bytes)) or not values:
         raise ValueError("Provide a nonempty sequence of instrument names")

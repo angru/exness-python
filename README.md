@@ -27,7 +27,7 @@ and shared synthetic response/signing fixtures. Each repository builds independe
 Until a PyPI release is available, install directly from GitHub:
 
 ```sh
-uv add "git+https://github.com/angru/exness-python.git@main"
+uv add "git+https://github.com/angru/exness-python.git@v0.1.0a7"
 ```
 
 For development:
@@ -450,3 +450,11 @@ strings use weekly schedules such as `Mon, 13:00:00`. Both are preserved verbati
 no timezone, recurrence calculation or "active now" flag is inferred. All synthetic
 fixtures are shared across SDKs and checked against the pinned OpenAPI. Live Exness
 interoperability remains unverified.
+
+## Reviewed alpha API
+
+Prefer `StreamOptions` and `StreamGap` for all five stream types. Existing
+`TickStream*`, `TradingStream*` and `ServerStream*` aliases remain supported.
+[API_REVIEW.md](API_REVIEW.md) maps the full Python/Go surface and records model,
+error, lifecycle and timeout differences. [RELEASE.md](RELEASE.md) contains the
+alpha release notes, installation instructions and publication procedure.

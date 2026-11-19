@@ -13,7 +13,7 @@ from exness.errors import (
     WebSocketAPIError,
 )
 from exness.events import ServerStreamGap, ServerStreamOptions
-from exness.ticks import TickStreamGap, TickStreamOptions
+from exness.ticks import StreamGap, StreamOptions, TickStreamGap, TickStreamOptions
 from exness.trading import TradingStreamGap, TradingStreamOptions
 
 __all__ = [
@@ -27,6 +27,8 @@ __all__ = [
     "ServerStreamGap",
     "ServerStreamOptions",
     "StreamClosed",
+    "StreamGap",
+    "StreamOptions",
     "TickStreamGap",
     "TickStreamOptions",
     "TradingStreamGap",

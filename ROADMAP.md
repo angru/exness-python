@@ -62,9 +62,16 @@ ambiguity and the request-selected validation approach are documented in
 - Shared fixtures, pinned-schema checks and local TLS tests cover all event kinds,
   validation, lifecycle actions, reconnection boundaries and cleanup.
 
-## Next: release readiness
+## Completed: alpha API review
 
-- Review the public API and examples together, then prepare a tagged alpha release.
+- Reviewed the REST/stream surface, model locations, error contracts and lifecycle.
+- Added neutral stream aliases without removing legacy names; fixed Python close
+  admission and added signature/external-consumer regression checks.
+- Prepared alpha 7 tags, release notes and reproducible install instructions.
+  See API_REVIEW.md and RELEASE.md.
+
+## Next: live interoperability and user feedback
+
 - Add an explicitly enabled read-only live smoke workflow when credentials and a
   test account are available; retain the unverified-live disclosure until then.
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "exness-python"
-version = "0.1.0a6"
+version = "0.1.0a7"
 description = "Unofficial typed, read-only client for the Exness Trading API"
 readme = "README.md"
 license = "MIT"
@@ -50,7 +50,7 @@ dev = [
 packages = ["src/exness"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
+include = ["/src", "/tests", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/API_REVIEW.md", "/RELEASE.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
 
 [tool.ruff]
 target-version = "py311"

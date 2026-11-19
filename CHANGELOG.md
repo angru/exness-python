@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0a7 — 2026-11-19
+
+- Review and document the public API, cross-language differences and alpha limits.
+- Add neutral StreamOptions/StreamGap aliases without removing legacy names.
+- Refuse new asyncio operations immediately when client closure starts; cover the
+  socket-cleanup race and sync/async REST signatures with regression tests.
+- Prepare the first tagged GitHub alpha with wheel/sdist and installation checks.
+  Live interoperability and PyPI publication remain outside this release.
+
 ## 0.1.0a6 — 2026-11-19
 
 - Add typed asyncio account-state, instrument and HMR subscriptions, reusing the
