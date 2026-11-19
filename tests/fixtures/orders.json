@@ -1,0 +1,13 @@
+{
+  "items": [{
+    "event_time": "2026-01-02T00:00:00+00:00",
+    "order": {
+      "order_id": "1002", "order_type": "market", "state": "filled",
+      "create_time": "2026-01-01T00:00:00+00:00", "instrument": "EURUSD",
+      "direction": "buy", "price": "1.08001", "volume": "0.01"
+    }
+  }],
+  "has_more": true,
+  "next_cursor": "opaque+/= &%?Ж",
+  "range": {"from": "2026-01-01T00:00:00+00:00", "to": "2026-01-03T00:00:00+00:00"}
+}

@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "exness-python"
+version = "0.1.0a1"
+description = "Unofficial typed, read-only client for the Exness Trading API"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography>=44,<47",
+  "httpx>=0.28,<0.29",
+  "pydantic>=2.11,<3",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/angru/exness-python"
+Issues = "https://github.com/angru/exness-python/issues"
+Changelog = "https://github.com/angru/exness-python/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+  "ruff>=0.11",
+  "mypy>=1.15,<2",
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "pyyaml>=6,<7",
+  "types-pyyaml>=6,<7",
+  "jsonschema>=4.23,<5",
+  "types-jsonschema>=4,<5",
+  "referencing>=0.36,<0.38",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exness"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/contracts", "/examples", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ANN", "RUF", "SIM", "C4", "PGH"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests", "examples"]
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers --cov=exness --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+branch = true
+source = ["exness"]
+
+[tool.coverage.report]
+exclude_also = ['if TYPE_CHECKING:', 'if __name__ == "__main__":']

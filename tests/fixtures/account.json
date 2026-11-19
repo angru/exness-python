@@ -1,0 +1,10 @@
+{
+  "account_id": "123456",
+  "create_date": "2026-01-01T00:00:00+00:00",
+  "account_name": "Synthetic account",
+  "settings": {
+    "currency": "USD", "leverage": "100",
+    "account_status": "active", "trade_mode": "enabled", "execution_mode": "market",
+    "margin_call_level": "60.00", "stopout_level": "0.00"
+  }
+}

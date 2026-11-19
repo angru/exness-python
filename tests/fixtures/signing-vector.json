@@ -1,0 +1,9 @@
+{
+  "api_key": "exnsk-synthetic-test",
+  "private_key_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "timestamp_ms": 1773656070123,
+  "path": "/v1/history/accounts/123456/deals?cursor=a%2Bb%2F%3D&limit=10",
+  "payload_utf8": "{\"api_key\":\"exnsk-synthetic-test\",\"idempotency_key\":\"\",\"timestamp\":1773656070123,\"sign_version\":1,\"method\":\"GET\",\"path\":\"/v1/history/accounts/123456/deals?cursor=a%2Bb%2F%3D&limit=10\",\"body_hash\":\"47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU\"}",
+  "exn_data": "eyJhcGlfa2V5IjoiZXhuc2stc3ludGhldGljLXRlc3QiLCJpZGVtcG90ZW5jeV9rZXkiOiIiLCJ0aW1lc3RhbXAiOjE3NzM2NTYwNzAxMjMsInNpZ25fdmVyc2lvbiI6MSwibWV0aG9kIjoiR0VUIiwicGF0aCI6Ii92MS9oaXN0b3J5L2FjY291bnRzLzEyMzQ1Ni9kZWFscz9jdXJzb3I9YSUyQmIlMkYlM0QmbGltaXQ9MTAiLCJib2R5X2hhc2giOiI0N0RFUXBqOEhCU2EtX1RJbVctNUpDZXVRZVJrbTVOTXBKV1pHM2hTdUZVIn0",
+  "exn_sign": "7a8_1Oz7J4_LEKJDIdWiZpLrRPiPbks9g7RKoqTZs_DOdiMuoqNBJlarsmUtLX2tS-4Dr1zvtnYFM4Z7HoY5BQ"
+}

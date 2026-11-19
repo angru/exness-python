@@ -1,0 +1,11 @@
+{
+  "items": [{
+    "event_time": "2026-01-02T00:00:00+00:00",
+    "deal": {
+      "deal_id": "3001", "type": "balance", "create_time": "2026-01-02T00:00:00+00:00",
+      "profit": {"amount": "100.01", "currency": "USD"}
+    }
+  }],
+  "next_cursor": "next-page",
+  "has_more": true
+}

@@ -1,0 +1,28 @@
+{
+  "limits": {
+    "rest": {
+      "global_account_rate": {"limit": 100, "window_seconds": 60},
+      "methods": [{
+        "api_operation_id": "getDealsHistory", "http_method": "GET",
+        "path": "/v1/history/accounts/{account_id}/deals",
+        "rate_limit": {"limit": 20, "window_seconds": 60},
+        "limits": {"history_range_days": 7, "history_age_days": 30}
+      }]
+    },
+    "websocket": {
+      "global_account_limits": {
+        "max_active_connections": 5, "max_inbound_message_bytes": 4096,
+        "connection_rate": {"limit": 5, "window_seconds": 1.0, "burst": 5},
+        "inbound_message_rate": {"limit": 10, "window_seconds": 1.0, "burst": 10},
+        "strikes": {"refill_amount": 1, "threshold": 10, "period_ms": 1000}
+      },
+      "endpoints": [{
+        "api_operation_id": "getWSTicks", "http_method": "GET",
+        "path": "/v1/server-events/accounts/{account_id}/ws/ticks",
+        "connection_rate": {"limit": 5, "window_seconds": 1.0, "burst": 5},
+        "inbound_message_rate": {"limit": 10, "window_seconds": 1.0, "burst": 10},
+        "subscription_operation_rate": {"ticks": {"limit": 5, "window_seconds": 1.0, "burst": 5}}
+      }]
+    }
+  }
+}
