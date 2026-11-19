@@ -7,7 +7,7 @@ import re
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
 from types import TracebackType
-from typing import Self, TypeVar
+from typing import Self, TypeVar, get_args
 
 import httpx
 from pydantic import ValidationError
@@ -18,12 +18,17 @@ from exness.models import (
     AccessPoint,
     AccountDetails,
     APIModel,
+    CandleHistory,
+    CandlePriceType,
+    CandleTimeframe,
     ClosedOrderState,
     DealHistoryItem,
     DealType,
     HistoryPage,
+    InstrumentConditions,
     Instruments,
     Limits,
+    OperationStatus,
     OrderHistoryItem,
     PublicError,
     TradingSnapshot,
@@ -240,6 +245,76 @@ class ExnessClient:
     def get_limits(self) -> Limits:
         return self._get(
             self.discover(), f"/v1/configuration/accounts/{self._account_id}/limits", Limits
+        )
+
+    def get_instrument_conditions(self, instrument: str) -> InstrumentConditions:
+        """Read precision, volume constraints, sessions and commissions for one instrument."""
+        if not re.fullmatch(r"[A-Za-z0-9._-]{1,11}", instrument) or instrument in (".", ".."):
+            raise ValueError("Invalid instrument name for a path segment")
+        result = self._get(
+            self.discover(),
+            f"/v1/configuration/accounts/{self._account_id}/instruments/{instrument}/conditions",
+            InstrumentConditions,
+        )
+        if result.instrument != instrument:
+            raise ProtocolError("Conditions response returned a different instrument")
+        return result
+
+    def get_operation_status(self, operation_id: str) -> OperationStatus:
+        """Read an existing operation once; rejected/failed outcomes are returned as data."""
+        if not re.fullmatch(r"[0-9]{1,20}", operation_id) or int(operation_id) >= 2**64:
+            raise ValueError("operation_id must be a uint64 decimal string")
+        result = self._get(
+            self.discover(),
+            f"/v1/trading/accounts/{self._account_id}/operations/{operation_id}",
+            OperationStatus,
+        )
+        if int(result.operation_id) != int(operation_id):
+            raise ProtocolError("Status response returned a different operation")
+        return result
+
+    def get_candle_history(
+        self,
+        *,
+        instrument: str,
+        timeframe: CandleTimeframe,
+        from_time: datetime,
+        to_time: datetime | None = None,
+        count: int | None = None,
+        price_type: CandlePriceType = "bid",
+    ) -> CandleHistory:
+        """Read candles with either from+to or from+nonzero signed count.
+
+        Dynamic count/range caps come from get_limits() and are enforced by the
+        server. No extra request, splitting, retries or automatic sorting occurs.
+        """
+        if not re.fullmatch(r"[A-Za-z0-9._-]{1,11}", instrument):
+            raise ValueError("Invalid instrument name")
+        if timeframe not in get_args(CandleTimeframe):
+            raise ValueError("Invalid candle timeframe")
+        if price_type not in get_args(CandlePriceType):
+            raise ValueError("Invalid candle price_type")
+        if (to_time is None) == (count is None):
+            raise ValueError("Provide exactly one of to_time or count")
+        params: dict[str, str | int] = {
+            "instrument": instrument,
+            "timeframe": timeframe,
+            "from": _utc(from_time),
+            "price_type": price_type,
+        }
+        if to_time is not None:
+            params["to"] = _utc(to_time)
+            if to_time <= from_time:
+                raise ValueError("to_time must be later than from_time")
+        if count is not None:
+            if isinstance(count, bool) or not isinstance(count, int) or count == 0:
+                raise ValueError("count must be a nonzero integer")
+            params["count"] = count
+        return self._get(
+            self.discover(),
+            f"/v1/market-data/accounts/{self._account_id}/candles",
+            CandleHistory,
+            params,
         )
 
     def get_orders_history(

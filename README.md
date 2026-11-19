@@ -9,12 +9,13 @@ The package has not been published to PyPI or verified against a live account.
 - Ed25519 authentication: Exness 128-character hex keys and unencrypted PKCS#8 PEM.
 - Gateway discovery, cached per client/account, with explicit refresh.
 - Account details, available instrument names, current trading snapshot and API limits.
+- Instrument conditions, candle history (bid/ask/both), and existing operation status.
 - Orders/deals history, individual pages and lazy iteration with opaque cursors.
 - Pydantic response models, exact `Decimal` money/price/volume fields, timezone-aware dates.
 - Structured errors, finite timeouts, no automatic retries or redirects.
 
-Python 3.11+. The first release is synchronous and read-only. Async, candles,
-instrument conditions, WebSocket streams and trading operations are follow-up work.
+Python 3.11+. The current release is synchronous and read-only. Async,
+WebSocket streams and trading operations are follow-up work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
@@ -93,11 +94,50 @@ page; it does not throttle automatically. An error can occur after earlier items
 have already been yielded. Repeated cursors and inconsistent continuation metadata
 raise `ProtocolError`.
 
-Money, trading prices and volumes are `Decimal` parsed directly from decimal
+Money, trading prices and trading volumes are `Decimal` parsed directly from decimal
 strings. Floats, NaN and scientific notation in these wire fields are rejected.
 Optional fields remain `None` when absent; unknown response fields are retained in
 Pydantic's `model_extra`. Unknown enum values fail validation so contract changes
 are visible. `model_dump_json()` serializes Decimal values as strings.
+
+## Candles, conditions and operation status
+
+```python
+conditions = client.get_instrument_conditions("EURUSD")
+print(conditions.point_digits, conditions.volume_step)
+
+candles = client.get_candle_history(
+    instrument="EURUSD",
+    timeframe="M1",
+    from_time=start,
+    count=10,
+    price_type="both",
+)
+for candle in candles.candles:
+    print(candle.time, candle.bid, candle.ask)
+
+# Read an operation ID you already have; this does not submit a trade.
+operation = client.get_operation_status("789")
+print(operation.status, operation.is_terminal)
+```
+
+These calls belong inside the client context. `from_time` is required for candles;
+provide exactly one of `to_time` (exclusive) or a nonzero `count`. Negative counts
+are valid. `price_type` defaults to `bid`; `ask` and `both` are supported. Supported
+timeframes: S1, S5, S15, M1, M3, M5, M10, M15, M30, H1, H2, H4, D1, W1, MN.
+The server enforces current count/range caps from `get_limits()`; this method does
+not silently fetch limits, split requests or sort results.
+
+Candle OHLC and volume fields are finite JSON numbers exposed as `float`, as
+specified by market data. Single-side candles use `open`/`high`/`low`/`close`;
+`both` uses nested `bid` and `ask`. Missing fields stay `None`. The SDK preserves
+both shapes; see the [upstream oneOf ambiguity](contracts/README.md#candle-schema-ambiguity).
+Instrument constraints, swaps and commission amounts use exact `Decimal` values.
+
+Operation states are `pending`, `confirmed`, `rejected`, `failed`. `is_terminal`
+means processing ended, not success. Rejection/failure codes are returned as model
+fields; HTTP failures still raise `APIError`. There is no automatic polling.
+`examples/read_market.py` demonstrates these reads using local environment inputs.
 
 ## Errors
 

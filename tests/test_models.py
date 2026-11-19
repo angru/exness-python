@@ -16,8 +16,10 @@ from exness.models import (
     APIModel,
     DealHistoryItem,
     HistoryPage,
+    InstrumentConditions,
     Instruments,
     Limits,
+    OperationStatus,
     OrderHistoryItem,
     TradingSnapshot,
 )
@@ -32,6 +34,11 @@ from exness.models import (
         ("orders", "OrdersHistoryResponse", HistoryPage[OrderHistoryItem]),
         ("deals", "DealsHistoryResponse", HistoryPage[DealHistoryItem]),
         ("limits", "LimitsResponse", Limits),
+        ("conditions", "InstrumentConditionResponse", InstrumentConditions),
+        ("operation_pending", "OperationStatusResponse", OperationStatus),
+        ("operation_confirmed", "OperationStatusResponse", OperationStatus),
+        ("operation_rejected", "OperationStatusResponse", OperationStatus),
+        ("operation_failed", "OperationStatusResponse", OperationStatus),
     ],
 )
 def test_fixtures_match_pinned_openapi_and_sdk(

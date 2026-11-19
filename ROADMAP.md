@@ -4,19 +4,15 @@ The current baseline is locally tested against a pinned contract and synthetic
 responses. Live interoperability remains unverified. This file is a development
 plan, not a claim that the following features are already supported.
 
-## Next: finish read-only REST coverage
+## Completed: read-only REST coverage (0.1.0a2)
 
-- Instrument conditions: typed models and validation for precision, volume limits,
-  execution settings and sessions.
-- Candle history: documented timeframes, range/count rules and response models.
-- Operation status: read existing operation results without submitting trades.
-- Add shared response fixtures with the Go SDK for each supported operation.
+Instrument conditions, candle history and existing operation status now complete
+the nine read-only REST operations in the pinned contract, plus discovery.
+Both SDKs share response fixtures and a signing vector. The upstream candle oneOf
+ambiguity and the request-selected validation approach are documented in
+`contracts/README.md`. Live interoperability remains a separate gate.
 
-Acceptance: documented operation IDs, fixtures checked against the pinned OpenAPI,
-tests covering invalid inputs and actual transmitted paths, strict mypy, Ruff,
-offline tests and installed-wheel checks all pass.
-
-## Strengthen offline verification
+## Next: strengthen offline verification
 
 - Property-based tests for decimal precision, URL encoding, key formats and cursors.
 - A local HTTP test server to exercise transport failures and timeouts beyond mocks.

@@ -22,6 +22,12 @@ It is reference material from Exness, not an SDK-generated specification.
 | `get_limits` | `getLimits` |
 | `get_orders_history`, `iter_orders_history` | `getOrdersHistory` |
 | `get_deals_history`, `iter_deals_history` | `getDealsHistory` |
+| `get_instrument_conditions` | `getInstrumentCondition` |
+| `get_candle_history` | `getCandleHistory` |
+| `get_operation_status` | `getOperationStatus` |
+
+All nine read-only REST operations in the pinned Trading YAML are covered, plus
+Gateway discovery. WebSocket handshakes are not included in REST coverage.
 
 SDK choices: accept only HTTPS origins, do not follow redirects, cache discovery
 until explicit refresh, do not retry automatically, require aware input datetimes,
@@ -46,3 +52,24 @@ RFC 8032 test key; no production data or credentials are present.
 vector intended for reuse in the Go SDK. Its signature was produced independently
 with OpenSSL 3.6.5 `pkeyutl -sign -rawin`, using the RFC 8032 seed wrapped in PKCS#8
 DER. Tests compare the SDK output byte-for-byte; OpenSSL is not required at test time.
+
+## Candle schema ambiguity
+
+Confirmed against the unchanged official YAML on 2026-11-19: the
+`CandleHistoryResponse.candles.items.oneOf` alternatives `Candle` and `CandleBidAsk`
+both have exclusively optional properties and permit additional properties.
+Consequently, ordinary bid/ask/both candle objects validate against both branches
+and fail the enclosing `oneOf` (which requires exactly one matching branch).
+
+The SDK uses a single typed candle model retaining flat OHLC and nested bid/ask
+fields, without guessing a discriminator or dropping one side. Fields stay
+optional as in the source. OHLC/volume are finite doubles, not decimal strings.
+Contract tests first assert the ambiguity, then validate a request-selected branch
+(`Candle` for bid/ask, `CandleBidAsk` for both) in an in-memory schema copy. The
+vendored YAML is never modified. This is a documented contract interpretation,
+not evidence of live server behavior. Nullable instrument properties follow the
+same documented-null policy as optional SL/TP fields.
+
+Instrument names consisting solely of `.` or `..` are rejected for the conditions
+path to avoid URL dot-segment normalization. Operation IDs follow uint64 string
+syntax; response identity comparison is numeric so leading zeros remain usable.

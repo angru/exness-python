@@ -10,7 +10,7 @@ import re
 from decimal import Decimal
 from typing import Annotated, Generic, Literal, TypeVar
 
-from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, FiniteFloat
 
 
 def _decimal_string(value: object) -> Decimal:
@@ -241,3 +241,115 @@ class ApiLimits(APIModel):
 
 class Limits(APIModel):
     limits: ApiLimits
+
+
+CandleTimeframe = Literal[
+    "S1",
+    "S5",
+    "S15",
+    "M1",
+    "M3",
+    "M5",
+    "M10",
+    "M15",
+    "M30",
+    "H1",
+    "H2",
+    "H4",
+    "D1",
+    "W1",
+    "MN",
+]
+CandlePriceType = Literal["bid", "ask", "both"]
+OperationState = Literal["pending", "confirmed", "rejected", "failed"]
+Int32 = Annotated[int, Field(ge=-(2**31), le=2**31 - 1)]
+
+
+class CandleSide(APIModel):
+    open: FiniteFloat | None = None
+    high: FiniteFloat | None = None
+    low: FiniteFloat | None = None
+    close: FiniteFloat | None = None
+
+
+class Candle(CandleSide):
+    """Single-side OHLC or nested bid/ask; fields absent on the wire stay None.
+
+    The upstream oneOf is ambiguous. Keep both documented shapes without guessing
+    a discriminator or dropping a side. See contracts/README.md.
+    """
+
+    time: AwareDatetime | None = None
+    volume: FiniteFloat | None = None
+    bid: CandleSide | None = None
+    ask: CandleSide | None = None
+
+
+class CandleHistory(APIModel):
+    candles: list[Candle] = Field(default_factory=list)
+
+
+class SwapMultiplier(APIModel):
+    day: str | None = None
+    multiplier: Int32 | None = None
+
+
+class Money(APIModel):
+    amount: DecimalValue | None = None
+    currency: str | None = None
+
+
+class CommissionSettings(APIModel):
+    commission_type: (
+        Literal["undefined", "per_lot_per_side", "per_lot_per_trade", "per_million_usd"] | None
+    ) = None
+    commission_value: Money | None = None
+
+
+class InstrumentSession(APIModel):
+    trade_mode: Literal["enabled", "trading_disabled"] | None = None
+    week_start_time: str | None = None
+    week_end_time: str | None = None
+
+
+class InstrumentConditions(APIModel):
+    instrument: Instrument
+    description: str | None = None
+    international_name: str | None = None
+    category: str | None = None
+    base_currency: str | None = None
+    quote_currency: str | None = None
+    margin_currency: str | None = None
+    point_digits: Int32 | None = None
+    calc_mode: Literal["undefined", "forex", "forex_no_leverage", "cfd", "cfd_leverage"] | None = (
+        None
+    )
+    exec_mode: Literal["undefined", "instant", "market"] | None = None
+    margin_percent: DecimalValue | None = None
+    contract_size: DecimalValue | None = None
+    volume_min: DecimalValue | None = None
+    volume_max: DecimalValue | None = None
+    volume_step: DecimalValue | None = None
+    swap_long: DecimalValue | None = None
+    swap_short: DecimalValue | None = None
+    swap_multipliers: list[SwapMultiplier] | None = None
+    trade_mode: Literal["enabled", "trading_disabled"] | None = None
+    order_types: list[Literal["stop", "limit", "stoplimit", "market"]] | None = None
+    filling_modes: list[Literal["fok", "ioc", "boc"]] | None = None
+    trade_sessions: list[InstrumentSession] | None = None
+    commission_settings: CommissionSettings | None = None
+
+
+class OperationStatus(APIModel):
+    operation_id: Identifier
+    status: OperationState
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+    client_request_id: str | None = None
+    error_code: Int32 | None = None
+    error_message: str | None = None
+
+    @property
+    def is_terminal(self) -> bool:
+        """A terminal outcome can be success, rejection or failure."""
+        return self.status != "pending"
