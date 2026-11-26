@@ -82,6 +82,35 @@ See [TRADING_WRITES.md](TRADING_WRITES.md) for the shared design and acceptance 
 
 Stages 1–4 do not require live access. Registry publication remains deferred.
 
+## Next: offline robustness and consumer verification
+
+The initial feature plan is complete offline; live access does not block this
+follow-up work. Complete the following work packages in order in both SDKs. Track
+each package with a repository issue and link its verified implementation before
+marking it complete. No live requests, automatic write retries or releases are
+part of this plan.
+
+| Order | Work package | Acceptance criteria |
+| --- | --- | --- |
+| 1 | Response validation audit | Review critical REST/transaction/HMR identifiers, required fields, nulls and states against the pinned contract; fix demonstrated inconsistencies; share positive and negative fixtures; document intentional language differences |
+| 2 | Decoder fuzzing and generated sequences | Bounded malformed REST/WebSocket inputs and snapshot/event sequences; no panics, unbounded processing or invalid state transitions; save discovered regressions and run deterministic seeds in normal CI |
+| 3 | Automated cross-SDK comparison | Detect drift in shared fixture copies and compare normalized results for agreed scenarios; explicitly pin the peer revision for reproducibility; keep each SDK independently buildable |
+| 4 | Local lifecycle stress and benchmarks | Repeat reconnect, concurrent request and cancellation scenarios against local servers; verify owned resource cleanup; record reproducible parsing/signing measurements without flaky wall-time performance gates |
+| 5 | Installed-package consumer checks | Exercise current exports, request/response types and trading/wait entry points from an installed Python artifact and an independent Go module; update API review tables/counts; run without live credentials |
+
+- [ ] 1. Response validation audit and shared regression corpus.
+- [ ] 2. Decoder fuzzing and generated event sequences.
+- [ ] 3. Automated fixture and behavioral parity checks.
+- [ ] 4. Local lifecycle stress and reproducible benchmarks.
+- [ ] 5. Installed-package checks and current public API documentation.
+
+The first reproduced inconsistency is uint64 overflow: the Python ACK model rejects
+`18446744073709551616`, while the transaction event model accepts it. Review the
+same boundary in Go and all related response identifiers. Do not tighten unknown
+fields or optional values merely to make the languages identical; changes require
+contract evidence and a regression case. Treat the pinned contract as the offline
+source of truth, recording ambiguities explicitly.
+
 ## Deferred: live interoperability and user feedback
 
 - Add an explicitly enabled read-only live smoke workflow when credentials and a
