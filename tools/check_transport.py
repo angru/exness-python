@@ -1,4 +1,4 @@
-"""Compare the public Python and Go clients against one synthetic TLS listener."""
+"""Compare the public Python and Go clients against shared synthetic TLS fixtures."""
 
 from __future__ import annotations
 
@@ -8,16 +8,19 @@ import json
 import logging
 import os
 import shutil
+import socket
 import ssl
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Awaitable, Callable
 from contextlib import aclosing, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from ipaddress import IPv4Address
 from pathlib import Path
 
@@ -37,16 +40,21 @@ from exness import (
     ProtocolError,
     StreamOptions,
     TradingStreamGap,
+    UnknownOutcomeError,
 )
 from exness.models import Tick
+from exness.requests import OpenPositionRequest
 from exness.trading import TradingEvent, TradingSnapshotEvent, TransactionEvent
 from tools.check_parity import ParityError, verify_peer
 from tools.transport_transcript import (
     ACCOUNT,
     ACCOUNT_PATH,
     DISCOVERY_PATH,
+    OPEN_ORDER,
+    POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
+    WRITE_KEY,
     Scenario,
     compare_transcripts,
     verify_request,
@@ -63,6 +71,7 @@ SIGNED_HEADERS = ("exn-data", "exn-sign", "exn-idempotency-key")
 IO_TIMEOUT = 3
 PEER_TIMEOUT = 15
 BUILD_TIMEOUT = 120
+MAX_ORDER_BODY = 1024
 
 
 class CheckError(Exception):
@@ -200,6 +209,176 @@ class FixtureServer:
         raise CheckError("unexpected extra WebSocket message")
 
 
+@dataclass
+class LostAckWire:
+    paths: list[str] = field(default_factory=list)
+    post_count: int = 0
+    receipt: dict[str, object] | None = None
+    failure: str | None = None
+
+
+class LostAckHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    server: LostAckServer
+
+    def log_message(self, format: str, *args: object) -> None:
+        pass
+
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
+        self.close_connection = True
+        if (wire := self.server.active) is not None:
+            wire.failure = wire.failure or "unexpected HTTP request"
+
+    def handle_expect_100(self) -> bool:
+        self.send_error(HTTPStatus.EXPECTATION_FAILED)
+        return False
+
+    @property
+    def raw_target(self) -> str:
+        # BaseHTTPRequestHandler can normalize self.path (e.g. leading slashes).
+        return self.requestline.split()[1]
+
+    def verify_signature(self, body: bytes = b"", key: str = "") -> None:
+        headers = {}
+        for name in SIGNED_HEADERS:
+            values = self.headers.get_all(name) or []
+            if len(values) != 1:
+                raise CheckError("missing or duplicate signing header")
+            headers[name] = values[0]
+        try:
+            verify_request(self.command, self.raw_target, headers, body=body, idempotency_key=key)
+        except ValueError:
+            raise CheckError("invalid signature for received request") from None
+
+    def do_GET(self) -> None:
+        self.close_connection = True
+        wire = self.server.active
+        if wire is None:
+            return
+        try:
+            if self.raw_target != DISCOVERY_PATH or wire.paths or wire.post_count:
+                raise CheckError("unexpected discovery request")
+            if self.headers.get_all("Transfer-Encoding") or (
+                self.headers.get_all("Content-Length") or []
+            ) not in ([], ["0"]):
+                raise CheckError("unexpected discovery request body")
+            self.verify_signature()
+            wire.paths.append(self.raw_target)
+            body = json.dumps({"access_point": self.server.origin, "account_id": ACCOUNT}).encode()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+        except CheckError as error:
+            wire.failure = wire.failure or str(error)
+        except OSError:
+            wire.failure = wire.failure or "discovery response did not complete"
+
+    def read_order(self) -> bytes:
+        lengths = self.headers.get_all("Content-Length") or []
+        if (
+            self.headers.get_all("Transfer-Encoding")
+            or len(lengths) != 1
+            or len(lengths[0]) > len(str(MAX_ORDER_BODY))
+            or not lengths[0].isascii()
+            or not lengths[0].isdigit()
+        ):
+            raise CheckError("invalid order body length")
+        size = int(lengths[0])
+        if not 0 < size <= MAX_ORDER_BODY:
+            raise CheckError("invalid order body length")
+        try:
+            body = self.rfile.read(size)
+        except OSError:
+            raise CheckError("order body did not complete") from None
+        if len(body) != size:
+            raise CheckError("order body did not complete")
+        return body
+
+    def do_POST(self) -> None:
+        self.close_connection = True
+        wire = self.server.active
+        if wire is None:
+            return
+        wire.post_count += 1
+        try:
+            if wire.post_count != 1:
+                raise CheckError("duplicate POST")
+            if self.raw_target != POSITIONS_PATH or wire.paths != [DISCOVERY_PATH]:
+                raise CheckError("unexpected order request")
+            body = self.read_order()
+            self.verify_signature(body, WRITE_KEY)
+            order = json.loads(body)
+            if order != OPEN_ORDER:
+                raise CheckError("unexpected order fields")
+            wire.paths.append(self.raw_target)
+            wire.receipt = {
+                "method": self.command,
+                "path": self.raw_target,
+                "order": order,
+                "signature_verified": True,
+                "idempotency_key": WRITE_KEY,
+                "acknowledgement_sent": False,
+            }
+            # Return to the server so it closes the connection without writing an HTTP response.
+        except CheckError as error:
+            wire.failure = wire.failure or str(error)
+        except (ValueError, RecursionError):
+            wire.failure = wire.failure or "invalid order JSON"
+
+
+class LostAckServer(HTTPServer):
+    timeout = 0.05
+
+    def __init__(self, tls: ssl.SSLContext) -> None:
+        self.tls = tls
+        self.active: LostAckWire | None = None
+        self._stopping = threading.Event()
+        self._connection_lock = threading.Lock()
+        self._connection: ssl.SSLSocket | None = None
+        super().__init__((LOOPBACK, 0), LostAckHandler)
+        self.origin = f"https://{LOOPBACK}:{self.server_port}"
+
+    def get_request(self) -> tuple[socket.socket, tuple[str, int]]:
+        sock, address = super().get_request()
+        try:
+            with self._connection_lock:
+                if self._stopping.is_set():
+                    raise OSError("HTTPS fixture is stopping")
+                sock.settimeout(IO_TIMEOUT)
+                connection = self.tls.wrap_socket(
+                    sock, server_side=True, do_handshake_on_connect=False
+                )
+                self._connection = connection
+        except OSError:
+            sock.close()
+            raise
+        try:
+            connection.do_handshake()
+        except OSError:
+            connection.close()
+            raise
+        return connection, address
+
+    def handle_error(self, request: object, client_address: object) -> None:
+        if (wire := self.active) is not None:
+            wire.failure = wire.failure or "HTTPS fixture exchange did not complete"
+
+    def run(self) -> None:
+        while not self._stopping.is_set():
+            self.handle_request()
+
+    def stop(self) -> None:
+        with self._connection_lock:
+            self._stopping.set()
+            if self._connection is not None:
+                with suppress(OSError):
+                    # Interrupt a handshake or read so the server thread can close the socket.
+                    socket.socket.shutdown(self._connection, socket.SHUT_RDWR)
+
+
 def make_tls(directory: Path) -> tuple[ssl.SSLContext, ssl.SSLContext, Path]:
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, LOOPBACK)])
@@ -243,9 +422,28 @@ async def run_python(origin: str, tls: ssl.SSLContext, scenario: Scenario) -> di
         ) as client:
             if scenario is Scenario.REST_TICKS:
                 return await run_python_ticks(client, tls)
+            if scenario is Scenario.LOST_ACK:
+                return await run_python_lost_ack(client)
             return await run_python_trading(client, tls, scenario)
     except (ExnessError, StopAsyncIteration):
         raise CheckError("SDK did not complete the scenario") from None
+
+
+async def run_python_lost_ack(client: AsyncExnessClient) -> dict[str, object]:
+    request = OpenPositionRequest.model_validate(OPEN_ORDER)
+    try:
+        await client.open_position(request, idempotency_key=WRITE_KEY)
+    except UnknownOutcomeError as error:
+        return {
+            "outcome": {
+                "error": "UnknownOutcomeError",
+                "method": error.method,
+                "path": error.path,
+                "account_id": error.account_id,
+                "idempotency_key": error.idempotency_key,
+            }
+        }
+    raise CheckError("expected UnknownOutcomeError after losing the acknowledgement")
 
 
 async def run_python_ticks(client: AsyncExnessClient, tls: ssl.SSLContext) -> dict[str, object]:
@@ -393,9 +591,13 @@ async def run_go(
         result = json.loads(output)
     except (ValueError, RecursionError):
         raise CheckError("Go consumer returned an invalid result") from None
-    fields = (
-        {"accounts", "tick", "error"} if scenario is Scenario.REST_TICKS else {"events", "outcome"}
-    )
+    match scenario:
+        case Scenario.REST_TICKS:
+            fields = {"accounts", "tick", "error"}
+        case Scenario.LOST_ACK:
+            fields = {"outcome"}
+        case _:
+            fields = {"events", "outcome"}
     if not isinstance(result, dict) or set(result) != fields:
         raise CheckError("Go consumer returned unexpected result fields")
     return result
@@ -427,6 +629,28 @@ async def observe(
     return {**result, "paths": wire.paths, "subscriptions": wire.subscriptions}
 
 
+async def observe_lost_ack(
+    server: LostAckServer,
+    label: str,
+    driver: Callable[[], Awaitable[dict[str, object]]],
+) -> dict[str, object]:
+    wire = LostAckWire()
+    label = f"{Scenario.LOST_ACK}: {label}"
+    server.active = wire
+    try:
+        async with asyncio.timeout(PEER_TIMEOUT):
+            result = await driver()
+    except TimeoutError:
+        raise CheckError(f"{label}: {wire.failure or 'scenario timed out'}") from None
+    except CheckError as error:
+        raise CheckError(f"{label}: {wire.failure or error}") from None
+    finally:
+        server.active = None
+    if wire.failure:
+        raise CheckError(f"{label}: {wire.failure}")
+    return {**result, "paths": wire.paths, "post_count": wire.post_count, "receipt": wire.receipt}
+
+
 async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
     server_tls, client_tls, certificate = make_tls(directory)
     script = FixtureServer()
@@ -449,6 +673,8 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
         script.origin = f"https://{LOOPBACK}:{port}"
         report: dict[str, object] = {}
         for scenario in Scenario:
+            if scenario is Scenario.LOST_ACK:
+                continue
             python = await observe(
                 script, scenario, "Python", partial(run_python, script.origin, client_tls, scenario)
             )
@@ -460,6 +686,24 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
             )
             compare_transcripts(scenario, python, go)
             report[scenario] = python
+        scenario = Scenario.LOST_ACK
+        with LostAckServer(server_tls) as https:
+            thread = threading.Thread(target=https.run, daemon=True)
+            thread.start()
+            try:
+                python = await observe_lost_ack(
+                    https, "Python", partial(run_python, https.origin, client_tls, scenario)
+                )
+                go = await observe_lost_ack(
+                    https, "Go", partial(run_go, binary, https.origin, certificate, scenario)
+                )
+                compare_transcripts(scenario, python, go)
+                report[scenario] = python
+            finally:
+                https.stop()
+                thread.join(IO_TIMEOUT)
+                if thread.is_alive():
+                    raise CheckError("HTTPS fixture shutdown timed out")
     return report
 
 

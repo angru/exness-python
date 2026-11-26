@@ -92,18 +92,21 @@ proposed SHAs identify the tested candidate commits, not those later pin commits
 ## Compare public clients over loopback TLS
 
 The Python-owned transport check exercises the public asyncio client and a
-standalone Go consumer. Both use the same ephemeral HTTPS/WebSocket listener on
-`127.0.0.1` and explicitly trust its temporary certificate. Each run starts with
-a fresh SDK client and fresh listener observations. The listener verifies every
-synthetic signature against the received request target, including WebSocket upgrades.
+standalone Go consumer. Both clients use the same fixture for each scenario and
+explicitly trust its temporary certificate. REST reads and WebSocket upgrades
+share one ephemeral listener. The write scenario uses a separate HTTP/1.1 TLS
+port with the same certificate. Both ports bind to `127.0.0.1`. Each client run
+starts with a fresh SDK client and fresh listener observations. Both listeners
+verify the synthetic signature against the received request target.
 
 | Scenario | Expected public observations |
 | --- | --- |
 | `rest_ticks` | Two account reads after one discovery, then an EURUSD tick followed by `ProtocolError` for a malformed frame. |
 | `trading_recovery` | Snapshot, partial-close transaction, one gap for close `1012`, a fresh snapshot with a different balance, and a balance transaction. Close `1000` ends the stream normally. |
 | `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
+| `lost_ack` | Signed discovery, then one signed open-position POST for EURUSD, buy, volume `0.01`. The fixture reads the complete bounded body and closes the connection without sending an HTTP response. Both SDKs return `UnknownOutcomeError` with the original synthetic idempotency key, account, method and path. |
 
-Each trading scenario expects one signed discovery and two signed upgrades to the
+Each transaction-stream scenario expects one signed discovery and two signed upgrades to the
 events endpoint. Both subscriptions must select `transactions` and use distinct
 nonempty request IDs. Each client's transcript is checked against the expected
 paths, subscription payloads, event order, selected values and outcome, then
@@ -111,6 +114,13 @@ compared with the other client's transcript. The report excludes generated reque
 IDs, timestamps, ports, credentials and signed headers. The trading scenarios
 reuse the shared fixtures, with the replacement snapshot derived locally from the
 shared snapshot by changing its balance.
+
+For `lost_ack`, the fixture verifies the Ed25519 signature against the received
+method, raw request target, exact body hash and idempotency header. It checks the
+order fields and counts POSTs separately for each client, including duplicate
+attempts. The report includes the verified receipt, POST count and error identity.
+It excludes the raw body, signed headers and underlying error causes. Both
+transcripts must match the fixed expectations and each other.
 
 Use Go 1.26 and a clean Go checkout at the full SHA recorded in
 `tools/parity-peer.json`. Prepare dependencies with `go mod download` in that
@@ -128,7 +138,7 @@ and cleanliness before and after the check, builds the consumer in a temporary
 module against the supplied checkout, and disables Go module fetching during
 the build. Loopback socket binding is required. The command exits nonzero for
 checkout, build, transport or transcript failures. The Python parity job checks
-the Go consumer with `gofmt` and runs all three scenarios in its existing loopback
+the Go consumer with `gofmt` and runs all four scenarios in its existing loopback
 TLS step against the pinned Go checkout.
 
 ## CI and updating a compatible pair

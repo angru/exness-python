@@ -53,6 +53,28 @@ def test_missing_snapshot_rejects_extra_events_and_normal_close(field: str) -> N
         compare_transcripts(scenario, expected, wrong)
 
 
+@pytest.mark.parametrize("field", ["error", "account_id", "method", "path", "idempotency_key"])
+def test_lost_ack_rejects_wrong_identity_without_reporting_values(field: str) -> None:
+    scenario = Scenario.LOST_ACK
+    expected = EXPECTED[scenario]
+    outcome = cast(dict[str, str], expected["outcome"])
+    wrong = {**expected, "outcome": {**outcome, field: "untrusted-value"}}
+
+    with pytest.raises(ValueError, match="lost_ack: Go transcript mismatch: outcome") as error:
+        compare_transcripts(scenario, expected, wrong)
+    assert "untrusted-value" not in str(error.value)
+    with pytest.raises(ValueError, match="lost_ack: Python transcript mismatch: outcome"):
+        compare_transcripts(scenario, wrong, wrong)
+
+
+@pytest.mark.parametrize(("field", "value"), [("post_count", 2), ("receipt", None)])
+def test_lost_ack_requires_single_verified_receipt(field: str, value: object) -> None:
+    expected = EXPECTED[Scenario.LOST_ACK]
+    wrong = {**expected, field: value}
+    with pytest.raises(ValueError, match=f"lost_ack: Python transcript mismatch: {field}"):
+        compare_transcripts(Scenario.LOST_ACK, wrong, wrong)
+
+
 def test_request_signature_is_bound_to_received_target() -> None:
     vector = json.loads((Path(__file__).parent / "fixtures/signing-vector.json").read_text())
     key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(vector["private_key_hex"])[:32])
