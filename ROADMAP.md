@@ -124,6 +124,12 @@ fields or optional values merely to make the languages identical; changes requir
 contract evidence and a regression case. Treat the pinned contract as the offline
 source of truth, recording ambiguities explicitly.
 
+## In review: candidate pair parity
+
+- [ ] [Validate explicit Python and Go candidate revisions before updating peer pins](https://github.com/angru/exness-python/issues/8).
+- Run the canonical offline candidate-pair command on two clean local checkouts;
+  review its parity evidence and proposed counterpart pins before adoption.
+
 ## Next: public API compatibility gate
 
 - [ ] [Guard public API compatibility against a pinned baseline](https://github.com/angru/exness-python/issues/6).
