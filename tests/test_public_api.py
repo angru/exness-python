@@ -31,9 +31,10 @@ def test_sync_async_rest_signature_parity() -> None:
             "place_pending_order",
             "modify_order",
             "cancel_pending_order",
+            "wait_operation",
         }
     }
-    assert len(methods) == 17
+    assert len(methods) == 18
     for name in methods:
         sync = getattr(ExnessClient, name)
         asynchronous = getattr(AsyncExnessClient, name)

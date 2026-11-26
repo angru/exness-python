@@ -28,6 +28,27 @@ ItemT = TypeVar("ItemT")
 _MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 
 
+def _correlates(
+    operation_id: str | None,
+    client_request_id: str | None,
+    candidate_id: str | None,
+    candidate_key: str | None,
+) -> bool:
+    if candidate_id is not None:
+        try:
+            _operation_id(candidate_id)
+        except ValueError:
+            raise ProtocolError("Invalid operation correlation ID") from None
+    comparisons: list[bool] = []
+    if operation_id is not None and candidate_id is not None:
+        comparisons.append(int(operation_id) == int(candidate_id))
+    if client_request_id is not None and candidate_key is not None:
+        comparisons.append(client_request_id == candidate_key)
+    if any(comparisons) and not all(comparisons):
+        raise ProtocolError("Conflicting operation correlation identifiers")
+    return any(comparisons)
+
+
 def _append_response_chunk(body: bytearray, chunk: bytes) -> None:
     if len(body) + len(chunk) > _MAX_RESPONSE_BYTES:
         raise ProtocolError("REST response exceeds 16 MiB")

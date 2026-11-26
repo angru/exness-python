@@ -67,8 +67,53 @@ retrying; a new key can create a second operation. Cancellation is not rollback:
 `asyncio.CancelledError` propagates unchanged, so retain the caller's key yourself.
 
 The [implementation plan](TRADING_WRITES.md) records the exact error policy and
-remaining stages. Stages 1–2 are implemented and tested offline; result tracking
-is next. Live interoperability remains unverified.
+remaining stages. Stages 1–3 are implemented and tested offline; application recovery
+examples are next. Live interoperability remains unverified.
+
+## Explicit result tracking on main
+
+Given an ACK and the key persisted before submission, create a reference and choose
+when to poll. Waiting performs GETs only; submission never starts it automatically.
+
+```python
+from exness import OperationReference, OperationWaitTimeout
+
+reference = OperationReference.from_ack(ack, client_request_id=request_key)
+try:
+    result = client.wait_operation(reference, timeout=30, poll_interval=1)
+except OperationWaitTimeout as error:
+    # Persist/reconcile error.reference and error.last_status; do not resubmit.
+    raise
+else:
+    if result.status == "confirmed":
+        pass  # Finalized; reconcile the resulting account state.
+    else:
+        pass  # Rejected/failed: inspect result.error_code and result.error_message.
+```
+
+For `AsyncExnessClient`, use `await client.wait_operation(...)` with the same
+arguments. Defaults are 30 seconds and 1 second. Both must be finite and positive.
+The deadline includes discovery, reads and delays. Async cancellation propagates.
+Sync deadlines are cooperative: remaining time caps HTTPX network phases, but an
+already blocking phase/custom transport may finish late. Late results are discarded.
+Shorter HTTP timeouts remain effective. API/transport/protocol errors stop the wait,
+including 404 and 429; no retries follow errors. `OperationWaitTimeout` also exposes
+`attempts` (status reads started, including discovery) and inherits `TimeoutError`.
+The last status may be `None` if no correlated response arrived before expiry.
+
+If the ACK lacks an operation ID, the reference still retains the caller key, but
+`wait_operation` rejects it before networking. After `UnknownOutcomeError`, create
+`OperationReference(client_request_id=saved_key)` to match subsequent events.
+For a `TransactionEvent` from the **same account**, `reference.matches_event(event)`
+checks identity only. Inspect `event.status` separately: `success`, `rejected`,
+`failed`, or absent. An absent status does not prove completion. Use
+`reference.matches_status(status)` for a manually fetched REST status.
+
+Either identifier can establish a match; conflicting evidence in the other raises
+`ProtocolError`. Unrelated identities return `False`. Operation IDs compare
+numerically; caller keys compare exactly. These helpers do not consume the stream
+or update a cache. After a stream gap, obtain a fresh snapshot before applying
+deltas. A timeout or lost ACK never authorizes a new-key resubmission.
 
 ## Installation and local setup
 

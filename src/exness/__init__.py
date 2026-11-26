@@ -7,6 +7,7 @@ from exness.errors import (
     APIError,
     ConfigurationError,
     ExnessError,
+    OperationWaitTimeout,
     ProtocolError,
     StreamClosed,
     TransportError,
@@ -14,6 +15,7 @@ from exness.errors import (
     WebSocketAPIError,
 )
 from exness.events import ServerStreamGap, ServerStreamOptions
+from exness.operations import OperationReference
 from exness.ticks import StreamGap, StreamOptions, TickStreamGap, TickStreamOptions
 from exness.trading import TradingStreamGap, TradingStreamOptions
 
@@ -24,6 +26,8 @@ __all__ = [
     "Credentials",
     "ExnessClient",
     "ExnessError",
+    "OperationReference",
+    "OperationWaitTimeout",
     "ProtocolError",
     "ServerStreamGap",
     "ServerStreamOptions",

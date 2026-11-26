@@ -25,7 +25,14 @@ from exness._common import (
     _response,
 )
 from exness.auth import Credentials, _idempotency_key, _Signer
-from exness.errors import APIError, ExnessError, ProtocolError, TransportError, UnknownOutcomeError
+from exness.errors import (
+    APIError,
+    ExnessError,
+    OperationWaitTimeout,
+    ProtocolError,
+    TransportError,
+    UnknownOutcomeError,
+)
 from exness.events import (
     AccountStateEvent,
     HmrEvent,
@@ -57,6 +64,7 @@ from exness.models import (
     Tick,
     TradingSnapshot,
 )
+from exness.operations import OperationReference, _wait_arguments
 from exness.requests import (
     ClosePositionRequest,
     ModifyOrderRequest,
@@ -341,6 +349,33 @@ class AsyncExnessClient:
         if result.instrument != instrument:
             raise ProtocolError("Conditions response returned a different instrument")
         return result
+
+    async def wait_operation(
+        self, reference: OperationReference, *, timeout: float = 30.0, poll_interval: float = 1.0
+    ) -> OperationStatus:
+        """Read until terminal or deadline, including discovery, reads and delays.
+
+        Rejected/failed outcomes are data; errors stop polling. Cancellation propagates.
+        """
+        operation_id = _wait_arguments(reference, timeout, poll_interval)
+        last_status: OperationStatus | None = None
+        attempts = 0
+        budget = asyncio.timeout(timeout)
+        try:
+            async with budget:
+                while True:
+                    attempts += 1
+                    status = await self.get_operation_status(operation_id)
+                    if not reference.matches_status(status):
+                        raise ProtocolError("Operation status identity mismatch")
+                    last_status = status
+                    if status.is_terminal:
+                        return status
+                    await asyncio.sleep(poll_interval)
+        except TimeoutError:
+            if not budget.expired():
+                raise
+            raise OperationWaitTimeout(reference, last_status, attempts) from None
 
     async def get_operation_status(self, operation_id: str) -> OperationStatus:
         """Read an existing operation once; rejected/failed outcomes are returned as data."""

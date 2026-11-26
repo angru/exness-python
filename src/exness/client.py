@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from datetime import datetime
+from time import monotonic, sleep
 from types import TracebackType
 from typing import Self, TypeVar
 
@@ -22,7 +23,14 @@ from exness._common import (
     _response,
 )
 from exness.auth import Credentials, _idempotency_key, _Signer
-from exness.errors import APIError, ExnessError, ProtocolError, TransportError, UnknownOutcomeError
+from exness.errors import (
+    APIError,
+    ExnessError,
+    OperationWaitTimeout,
+    ProtocolError,
+    TransportError,
+    UnknownOutcomeError,
+)
 from exness.models import (
     AccessPoint,
     AccountDetails,
@@ -41,6 +49,14 @@ from exness.models import (
     OperationStatus,
     OrderHistoryItem,
     TradingSnapshot,
+)
+from exness.operations import (
+    OperationReference,
+    _DeadlineExpired,
+    _limit_request,
+    _remaining,
+    _sync_deadline,
+    _wait_arguments,
 )
 from exness.requests import (
     ClosePositionRequest,
@@ -122,17 +138,54 @@ class ExnessClient:
         self._ensure_open()
         request = self._http.build_request("GET", base_url + path, params=params)
         request.headers.update(self._signer.get_headers(request.url.raw_path.decode("ascii")))
+        _limit_request(request)
         try:
             response = self._http.send(request, stream=True)
             try:
+                _remaining()
+                _limit_request(request)
                 body = bytearray()
                 for chunk in response.iter_bytes():
+                    _remaining()
                     _append_response_chunk(body, chunk)
+                _remaining()
                 return _response(response, model, body)
             finally:
                 response.close()
         except httpx.RequestError:
+            _remaining()
             raise TransportError("Exness request failed at the transport layer") from None
+
+    def wait_operation(
+        self, reference: OperationReference, *, timeout: float = 30.0, poll_interval: float = 1.0
+    ) -> OperationStatus:
+        """Read until terminal or timeout; sync network deadlines are cooperative.
+
+        Rejected/failed outcomes are returned as data. Read errors stop immediately.
+        A currently blocking HTTP phase can finish after the overall deadline.
+        """
+        operation_id = _wait_arguments(reference, timeout, poll_interval)
+        token = _sync_deadline.set(monotonic() + timeout)
+        last_status: OperationStatus | None = None
+        attempts = 0
+        try:
+            while True:
+                _remaining()
+                attempts += 1
+                status = self.get_operation_status(operation_id)
+                _remaining()
+                if not reference.matches_status(status):
+                    raise ProtocolError("Operation status identity mismatch")
+                last_status = status
+                if status.is_terminal:
+                    return status
+                remaining = _remaining()
+                assert remaining is not None
+                sleep(min(poll_interval, remaining))
+        except _DeadlineExpired:
+            raise OperationWaitTimeout(reference, last_status, attempts) from None
+        finally:
+            _sync_deadline.reset(token)
 
     def _submit(
         self,

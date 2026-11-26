@@ -1,6 +1,6 @@
 # Trading operations development plan
 
-Status: stages 1–2 implemented on main; stage 3 is next. Clients expose read and
+Status: stages 1–3 implemented on main; stage 4 is next. Clients expose read and
 explicit trading submission operations. The stages below apply to both SDKs; completion means offline contract
 and transport verification, not live interoperability. Publication is a separate task.
 
@@ -86,7 +86,7 @@ events; there is no lookup-by-idempotency-key endpoint in this contract. Never
 retry with a new key merely because a response was lost. Reusing a key is not an
 unlimited guarantee: retention is finite and its duration is not specified here.
 
-Stage 3 must preserve terminal distinctions: `confirmed` is finalized,
+Stage 3 preserves terminal distinctions: `confirmed` is finalized,
 `rejected` and `failed` retain their error details, and deadline expiry remains
 unknown/pending rather than becoming a fabricated rejection. Polling is an
 explicit caller operation with a deadline and delay, not a submission side effect.
@@ -136,3 +136,41 @@ partial and close-by closure. The nullable SL/TP keywords in ModifyOrderRequest
 are legacy OpenAPI syntax despite the 3.1 document version. Schema tests apply
 only their documented null semantics to an in-memory schema; the pinned source
 is unchanged. Both SDKs verify actual wire signatures over loopback TLS.
+
+## Implemented result tracking
+
+`OperationReference` holds operation ID, caller request ID, or both, scoped to the
+same account as the client and transaction stream. Build it from an ACK with the
+persisted caller key as fallback. A key-only reference can correlate events after
+an unknown outcome; polling requires an operation ID. No key lookup is invented.
+
+`wait_operation` / `WaitOperation` makes an immediate status read and repeats only
+pending results, with a delay after each completed read. Defaults are a 30-second
+wait budget and a 1-second poll interval. Choose an interval appropriate to the
+account's limits; this helper does not fetch limits or coordinate callers. API,
+transport and protocol errors stop polling, including 404 and 429. It never submits
+a write or retries one. The returned terminal status retains all available error
+details. Timeout errors preserve the reference, last correlated status (or none),
+and number of status reads started (including first-read discovery).
+
+Python async waiting and Go contexts cover discovery, lock contention, requests
+and delays. Caller cancellation remains inspectable. Python sync waiting checks a
+monotonic deadline at request/body boundaries and caps HTTPX network phase timeouts
+by the remaining budget, preserving shorter configured timeouts. It cannot abort
+an already blocking phase or an uncooperative custom transport at an exact wall
+clock deadline. Late responses are not reported as successful waits. The budget
+is context-local and does not change the shared HTTP pool's configuration.
+
+`matches_event` / `MatchesEvent` and `matches_status` / `MatchesStatus` are pure
+identity checks. At least one shared identifier must agree; a second contradictory
+identifier raises ProtocolError. Two wholly unrelated identities return false.
+Numeric operation IDs compare equally despite leading zeroes; caller keys compare
+exactly. Identity matching does not imply completion: transaction status may be
+absent, and its success value is `success`, whereas REST uses `confirmed`. These
+helpers neither consume streams nor synthesize a status from changed entities.
+
+After a gap, rebuild account state from a fresh stream snapshot before applying
+deltas. A missing ACK, wait timeout, 404, cancellation or incomplete event remains
+a reconciliation problem, not permission to repeat the trade with a fresh key.
+The next stage adds runnable application recovery scenarios; live verification
+and publication remain deferred.

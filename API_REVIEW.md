@@ -113,4 +113,8 @@ methods, request variants, PATCH null handling, ACK correlation and unknown outc
 Python exports UnknownOutcomeError from the package root and request types from
 exness.requests. Go exposes request types, PriceChange constructors and
 UnknownOutcomeError at the package root. Submission returns admission only;
-tracking helpers remain a future stage. The validation evidence is offline.
+explicit result tracking is now available on main. OperationReference correlates
+ACKs, status reads and transaction events; wait_operation / WaitOperation perform
+bounded reads only. Timeout errors preserve identity and the last status. Python
+sync waiting has cooperative network deadlines; async/Go support cancellation
+through in-flight reads and discovery waits. The validation evidence is offline.

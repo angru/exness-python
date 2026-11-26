@@ -1,0 +1,133 @@
+[
+  {
+    "name": "both",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "789",
+      "client_request_id": "synthetic-request"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "id-only-candidate",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "789"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "key-only-candidate",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "client_request_id": "synthetic-request"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "unrelated",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "790",
+      "client_request_id": "another-request"
+    },
+    "outcome": "unrelated"
+  },
+  {
+    "name": "no-identity",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {},
+    "outcome": "unrelated"
+  },
+  {
+    "name": "key-conflict",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "789",
+      "client_request_id": "another-request"
+    },
+    "outcome": "conflict"
+  },
+  {
+    "name": "id-conflict",
+    "reference": {
+      "operation_id": "000789",
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "790",
+      "client_request_id": "synthetic-request"
+    },
+    "outcome": "conflict"
+  },
+  {
+    "name": "id-only-reference",
+    "reference": {
+      "operation_id": "789"
+    },
+    "candidate": {
+      "operation_id": "000789",
+      "client_request_id": "another-request"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "key-only-reference",
+    "reference": {
+      "client_request_id": "synthetic-request"
+    },
+    "candidate": {
+      "operation_id": "789",
+      "client_request_id": "synthetic-request"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "no-comparable-identity",
+    "reference": {
+      "operation_id": "789"
+    },
+    "candidate": {
+      "client_request_id": "synthetic-request"
+    },
+    "outcome": "unrelated"
+  },
+  {
+    "name": "uint64-max",
+    "reference": {
+      "operation_id": "18446744073709551615"
+    },
+    "candidate": {
+      "operation_id": "18446744073709551615"
+    },
+    "outcome": "match"
+  },
+  {
+    "name": "zero",
+    "reference": {
+      "operation_id": "00"
+    },
+    "candidate": {
+      "operation_id": "0"
+    },
+    "outcome": "match"
+  }
+]

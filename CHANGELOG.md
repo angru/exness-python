@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add explicit bounded operation-status waiting and account-scoped OperationReference
+  correlation for ACKs, REST status and transaction events. Preserve terminal
+  rejection/failure details and timeout identity without retrying trading writes.
+- Verify shared correlation cases, pending/terminal/error paths, discovery contention,
+  cancellation and local TLS deadlines. Document cooperative sync Python deadlines.
+
 - Implement all five trading submission methods with explicit idempotency keys,
   exact signed bodies/queries and no automatic write retries.
 - Add limit/stop/SLTP, modification and closure request types; preserve PATCH

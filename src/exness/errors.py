@@ -1,5 +1,13 @@
 """SDK errors. Exception messages never include signed requests or raw responses."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from exness.models import OperationStatus
+    from exness.operations import OperationReference
+
 
 class ExnessError(Exception):
     """Base class for SDK failures."""
@@ -15,6 +23,18 @@ class TransportError(ExnessError):
 
 class ProtocolError(ExnessError):
     """A response violated the expected API contract."""
+
+
+class OperationWaitTimeout(ExnessError, TimeoutError):
+    """Waiting expired; this does not imply rejection or failure of the operation."""
+
+    def __init__(
+        self, reference: OperationReference, last_status: OperationStatus | None, attempts: int
+    ) -> None:
+        self.reference = reference
+        self.last_status = last_status
+        self.attempts = attempts
+        super().__init__("Operation wait timed out; reconcile before retrying")
 
 
 class UnknownOutcomeError(ExnessError):
