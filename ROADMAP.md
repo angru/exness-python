@@ -124,17 +124,16 @@ fields or optional values merely to make the languages identical; changes requir
 contract evidence and a regression case. Treat the pinned contract as the offline
 source of truth, recording ambiguities explicitly.
 
-## In review: candidate pair parity
+## Completed: candidate pair parity
 
-- [ ] [Validate explicit Python and Go candidate revisions before updating peer pins](https://github.com/angru/exness-python/issues/8).
+- [x] [Validate explicit Python and Go candidate revisions before updating peer pins](https://github.com/angru/exness-python/issues/8).
 - Run the canonical offline candidate-pair command on two clean local checkouts;
   review its parity evidence and proposed counterpart pins before adoption.
 
-## Next: public API compatibility gate
+## Completed: public API compatibility gate
 
-- [ ] [Guard public API compatibility against a pinned baseline](https://github.com/angru/exness-python/issues/6).
-- Use current main at `1cedf7d12b9977e2d7a4204b9e12ba0d9733d1c2` as the proposed baseline,
-  subject to explicit review of the public surface. Historical alpha-7 tags omit
+- [x] [Guard public API compatibility against a pinned baseline](https://github.com/angru/exness-python/issues/6).
+- The gate checks the reviewed public surface at `1cedf7d12b9977e2d7a4204b9e12ba0d9733d1c2` as its baseline. Historical alpha-7 tags omit
   later submission/wait APIs and are not this baseline.
 - Detect incompatible public export, signature and request/response type changes;
   distinguish compatible additions and explain language-specific exclusions.
@@ -143,8 +142,7 @@ source of truth, recording ambiguities explicitly.
 - Keep baseline replacement an explicit reviewed edit; retain installed-consumer
   checks and document that API shape checks do not prove behavioral compatibility.
 
-This work requires no live account or release. Implementation routing (direct or
-Worker Board) is being selected before dispatch; each SDK owns its own changes.
+Worker Board completed implementation, verification and independent review for each SDK.
 
 ## Deferred: live interoperability and user feedback
 
