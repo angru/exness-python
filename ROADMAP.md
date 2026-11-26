@@ -168,3 +168,4 @@ Worker Board completed implementation, verification and independent review for e
 - The Python parity job compares both public clients against one local TLS
   listener. See the [offline command](PARITY.md#compare-public-clients-over-loopback-tls)
   and [issue #14](https://github.com/angru/exness-python/issues/14).
+- [ ] [Compare transaction-stream recovery and missing-snapshot rejection](https://github.com/angru/exness-python/issues/16).

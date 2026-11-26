@@ -93,13 +93,24 @@ proposed SHAs identify the tested candidate commits, not those later pin commits
 
 The Python-owned transport check exercises the public asyncio client and a
 standalone Go consumer. Both use the same ephemeral HTTPS/WebSocket listener on
-`127.0.0.1` and explicitly trust its temporary certificate. Each client makes two
-account reads with one discovery request, subscribes to EURUSD ticks, receives
-one valid tick and returns a protocol error for the next malformed message.
-The listener verifies each synthetic signature against the received request target.
-Both observed transcripts must match the expected paths, subscription and results.
-The report excludes generated request IDs, timestamps, ports, credentials and
-signed headers. The decoder and recovery checks run separately.
+`127.0.0.1` and explicitly trust its temporary certificate. Each run starts with
+a fresh SDK client and fresh listener observations. The listener verifies every
+synthetic signature against the received request target, including WebSocket upgrades.
+
+| Scenario | Expected public observations |
+| --- | --- |
+| `rest_ticks` | Two account reads after one discovery, then an EURUSD tick followed by `ProtocolError` for a malformed frame. |
+| `trading_recovery` | Snapshot, partial-close transaction, one gap for close `1012`, a fresh snapshot with a different balance, and a balance transaction. Close `1000` ends the stream normally. |
+| `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
+
+Each trading scenario expects one signed discovery and two signed upgrades to the
+events endpoint. Both subscriptions must select `transactions` and use distinct
+nonempty request IDs. Each client's transcript is checked against the expected
+paths, subscription payloads, event order, selected values and outcome, then
+compared with the other client's transcript. The report excludes generated request
+IDs, timestamps, ports, credentials and signed headers. The trading scenarios
+reuse the shared fixtures, with the replacement snapshot derived locally from the
+shared snapshot by changing its balance.
 
 Use Go 1.26 and a clean Go checkout at the full SHA recorded in
 `tools/parity-peer.json`. Prepare dependencies with `go mod download` in that
@@ -116,8 +127,9 @@ Pass `--go /path/to/go` to select a Go executable. The command verifies Go HEAD
 and cleanliness before and after the check, builds the consumer in a temporary
 module against the supplied checkout, and disables Go module fetching during
 the build. Loopback socket binding is required. The command exits nonzero for
-checkout, build, transport or transcript failures. The Python parity job runs it
-as a dedicated step against its ordinary pinned Go checkout.
+checkout, build, transport or transcript failures. The Python parity job checks
+the Go consumer with `gofmt` and runs all three scenarios in its existing loopback
+TLS step against the pinned Go checkout.
 
 ## CI and updating a compatible pair
 
