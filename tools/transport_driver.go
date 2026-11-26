@@ -46,6 +46,7 @@ type writeOutcome struct {
 }
 
 const writeKey = "transport-lost-ack-0001"
+const acknowledgedOpenKey = "transport-acknowledged-open-0001"
 
 func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	if scenario == "lost_ack_recovery" && streamOrigin == "" {
@@ -98,6 +99,8 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	case "trading_missing_snapshot":
 		// A protocol error must stop recovery while a second retry is available.
 		return runTrading(ctx, client, 2)
+	case "acknowledged_open":
+		return runAcknowledgedOpen(ctx, client)
 	case "lost_ack", "lost_ack_recovery":
 		unknown, err := submitLostAck(ctx, client)
 		if err != nil {
@@ -130,7 +133,7 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	}
 }
 
-func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownOutcomeError, error) {
+func submitOpenPosition(ctx context.Context, client *exness.Client, key string) (*exness.AckResponse, error) {
 	volume, err := exness.NewDecimal("0.01")
 	if err != nil {
 		return nil, errors.New("initialize synthetic volume")
@@ -140,7 +143,11 @@ func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownO
 		Side:       exness.TradeBuy,
 		Volume:     volume,
 	}
-	ack, err := client.OpenPosition(ctx, request, writeKey)
+	return client.OpenPosition(ctx, request, key)
+}
+
+func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownOutcomeError, error) {
+	ack, err := submitOpenPosition(ctx, client, writeKey)
 	var unknown *exness.UnknownOutcomeError
 	if ack != nil || !errors.As(err, &unknown) {
 		return nil, errors.New("expected UnknownOutcomeError after losing the acknowledgement")
@@ -149,6 +156,36 @@ func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownO
 		return nil, errors.New("lost acknowledgement did not preserve the caller key")
 	}
 	return unknown, nil
+}
+
+func runAcknowledgedOpen(ctx context.Context, client *exness.Client) error {
+	ack, err := submitOpenPosition(ctx, client, acknowledgedOpenKey)
+	if err != nil || ack == nil {
+		return errors.New("expected an open-position acknowledgement")
+	}
+	reference, err := exness.OperationReferenceFromAck(*ack, acknowledgedOpenKey)
+	if err != nil {
+		return errors.New("build operation reference from acknowledgement")
+	}
+	result, err := client.WaitOperation(ctx, reference, exness.OperationWaitOptions{
+		Timeout:      3 * time.Second,
+		PollInterval: 10 * time.Millisecond,
+	})
+	if err != nil || result == nil {
+		return errors.New("wait for open-position confirmation")
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{
+		"ack": map[string]any{
+			"status":            ack.Status,
+			"operation_id":      ack.OperationID,
+			"client_request_id": ack.ClientRequestID,
+		},
+		"outcome": map[string]any{
+			"status":            result.Status,
+			"operation_id":      result.OperationID,
+			"client_request_id": result.ClientRequestID,
+		},
+	})
 }
 
 func runLostAckRecovery(ctx context.Context, client *exness.Client, reference exness.OperationReference) ([]map[string]any, error) {
