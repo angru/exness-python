@@ -575,3 +575,9 @@ Prefer `StreamOptions` and `StreamGap` for all five stream types. Existing
 [API_REVIEW.md](API_REVIEW.md) maps the full Python/Go surface and records model,
 error, lifecycle and timeout differences. [RELEASE.md](RELEASE.md) contains the
 alpha release notes, installation instructions and publication procedure.
+
+## Cross-SDK parity
+
+The optional [offline parity check](PARITY.md) compares shared fixtures and actual
+Python/Go decoder and recovery results against an explicitly pinned peer revision.
+It runs in a separate CI job and adds no peer dependency to normal builds or SDK use.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add an optional pinned cross-SDK parity check: 46 shared files, 170 decoder
+  outcomes and 49 recovery checkpoints, with explicit drift diagnostics.
+
 - Add bounded REST/WebSocket decoder fuzzing and generated snapshot-state sequences,
   with shared malformed seeds and deterministic regression traces.
 - Convert Python JSON nesting recursion failures into ProtocolError across all
