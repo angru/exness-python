@@ -172,7 +172,7 @@ and cleanliness before and after the check, builds the consumer in a temporary
 module against the supplied checkout, and disables Go module fetching during
 the build. Loopback socket binding is required. The command exits nonzero for
 checkout, build, transport or transcript failures. The Python parity job checks
-the Go consumer with `gofmt` and runs all six scenarios in its existing loopback
+the Go consumer with `gofmt` and runs the transport scenarios in its loopback
 TLS step against the pinned Go checkout.
 
 ## CI and updating a compatible pair
