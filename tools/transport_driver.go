@@ -22,8 +22,8 @@ type signingVector struct {
 
 type tickResult struct {
 	Instrument *string  `json:"instrument"`
-	Bid         *float64 `json:"bid"`
-	Ask         *float64 `json:"ask"`
+	Bid        *float64 `json:"bid"`
+	Ask        *float64 `json:"ask"`
 }
 
 type transcript struct {
