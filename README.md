@@ -581,3 +581,9 @@ alpha release notes, installation instructions and publication procedure.
 The optional [offline parity check](PARITY.md) compares shared fixtures and actual
 Python/Go decoder and recovery results against an explicitly pinned peer revision.
 It runs in a separate CI job and adds no peer dependency to normal builds or SDK use.
+
+## Lifecycle stress and benchmarks
+
+See [PERFORMANCE.md](PERFORMANCE.md) for bounded local TLS stress checks, resource
+cleanup assertions, reproducible parsing/signing measurements and their limits.
+These checks require no live credentials and apply no CI speed thresholds.

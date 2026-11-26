@@ -6,7 +6,7 @@ import ssl
 import threading
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -59,10 +59,22 @@ def tls_contexts(tmp_path: Path) -> tuple[ssl.SSLContext, ssl.SSLContext]:
 
 
 @dataclass
+class ConnectionCounts:
+    opened: int = 0
+    finished: int = 0
+    condition: threading.Condition = field(default_factory=threading.Condition)
+
+    def wait_closed(self, timeout: float = 3) -> bool:
+        with self.condition:
+            return self.condition.wait_for(lambda: self.opened == self.finished, timeout)
+
+
+@dataclass
 class LocalServer:
     url: str
     requests: Queue[tuple[httpx.Request, int]]
     closed: threading.Event
+    connections: ConnectionCounts
 
 
 @contextmanager
@@ -73,9 +85,15 @@ def serve_tls(
     requests: Queue[tuple[httpx.Request, int]] = Queue()
     failures: Queue[Exception] = Queue()
     closed = threading.Event()
+    connections = ConnectionCounts()
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
+
+        def setup(self) -> None:
+            super().setup()
+            with connections.condition:
+                connections.opened += 1
 
         def do_GET(self) -> None:
             request = httpx.Request(
@@ -103,13 +121,16 @@ def serve_tls(
                 super().finish()
             finally:
                 closed.set()
+                with connections.condition:
+                    connections.finished += 1
+                    connections.condition.notify_all()
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.socket = contexts[0].wrap_socket(server.socket, server_side=True)
     thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01), daemon=True)
     thread.start()
     try:
-        yield LocalServer(f"https://127.0.0.1:{server.server_port}", requests, closed)
+        yield LocalServer(f"https://127.0.0.1:{server.server_port}", requests, closed, connections)
     finally:
         server.shutdown()
         server.server_close()

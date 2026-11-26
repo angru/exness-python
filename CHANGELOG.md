@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add six-cycle local TLS stress checks for concurrent REST cancellation, bounded
+  WebSocket reconnects and concurrent stream shutdown, with resource accounting.
+- Add reproducible snapshot/tick parsing and GET/POST signing benchmarks, smoke
+  checks without speed thresholds, and documented local measurements.
+
 - Add an optional pinned cross-SDK parity check: 46 shared files, 170 decoder
   outcomes and 49 recovery checkpoints, with explicit drift diagnostics.
 
