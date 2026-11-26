@@ -101,7 +101,7 @@ def _tick(message: str | bytes, instruments: tuple[str, ...], request_id: str) -
                 raise ProtocolError("WebSocket error returned an unknown request id")
             raise WebSocketAPIError(error.id, error.code, error.error_message)
         tick = Tick.model_validate_json(message)
-    except (ValueError, ValidationError):
+    except (ValueError, ValidationError, RecursionError):
         raise ProtocolError("Invalid tick stream message") from None
     if tick.instrument is None or tick.instrument not in instruments:
         raise ProtocolError("Tick returned a missing or unsubscribed instrument")

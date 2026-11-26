@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add bounded REST/WebSocket decoder fuzzing and generated snapshot-state sequences,
+  with shared malformed seeds and deterministic regression traces.
+- Convert Python JSON nesting recursion failures into ProtocolError across all
+  five WebSocket decoders; preserve normal cancellation/error handling.
+- Run three new Go decoder fuzz targets in CI with explicit duration/worker budgets.
+
 - Enforce uint64 response identifier bounds consistently, preserving zero and leading
   zeroes where the response contract permits them; validate critical entity states.
 - Reject explicit null in audited non-nullable ACK/status/transaction fields and

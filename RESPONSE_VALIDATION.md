@@ -51,3 +51,43 @@ malformed timestamps. Decoder tests exercise the normal snapshot prerequisites.
 REST regressions verify that a malformed nested ID becomes ProtocolError through
 both Python clients and the Go client. Existing signing, submission, stream and
 recovery suites must continue to pass. No request reaches a live service.
+
+## Generated decoder checks
+
+Work package 2 adds shared malformed-message seeds (`decoder-seeds.json`) and
+snapshot-state traces (`decoder-sequences.json`). The traces use 0 for a valid
+snapshot, 1 for a delta, 2 for a malformed snapshot, 3 for a new decoder/connection,
+and 4 for an empty replacement snapshot. An independent boolean oracle checks
+that deltas require a successful snapshot in the current connection; a failed
+snapshot cannot establish one. Normal stream error handling still terminates the
+connection: continuing after rejected input here tests decoder state in isolation.
+
+Python runs deterministic Hypothesis examples for REST responses, all five
+WebSocket decoders, structured mutations and generated transition sequences.
+A shared deeply nested JSON seed exposed unhandled RecursionError in the Python
+WebSocket parsing prepass. Those failures now become sanitized ProtocolError
+without changing the interpreter recursion limit or swallowing caller cancellation.
+
+Go adds FuzzRESTResponses, FuzzWebSocketMessages and FuzzDecoderSequences. REST
+cases use an in-memory transport and assert response body closure; WebSocket
+cases call the decoders directly. Seed cases run in ordinary go test. CI runs
+each fuzz target for five seconds with two workers on Go 1.27, alongside the five
+existing targets. Decoder inputs are capped at 8 KiB and sequences at 32 actions
+in these test drivers; these are test budgets, not new SDK message-size limits.
+No generated test sends requests to an external API.
+
+Run the generated tests explicitly from the relevant repository:
+
+```sh
+uv run pytest tests/test_decoder_properties.py
+```
+
+```sh
+go test -run '^$' -fuzz '^FuzzRESTResponses$' -fuzztime 5s -parallel 2 .
+go test -run '^$' -fuzz '^FuzzWebSocketMessages$' -fuzztime 5s -parallel 2 .
+go test -run '^$' -fuzz '^FuzzDecoderSequences$' -fuzztime 5s -parallel 2 .
+```
+
+Longer exploratory runs remain opt-in. Keep every discovered regression as a
+normal test or deterministic seed. Passing a bounded fuzz run does not prove that
+all malformed inputs or message orderings have been explored.

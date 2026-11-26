@@ -1,0 +1,51 @@
+[
+  {
+    "name": "delta-before-snapshot",
+    "actions": [
+      1
+    ]
+  },
+  {
+    "name": "failed-snapshot-does-not-unlock",
+    "actions": [
+      2,
+      1
+    ]
+  },
+  {
+    "name": "reset-requires-snapshot",
+    "actions": [
+      0,
+      1,
+      3,
+      1,
+      2,
+      1,
+      0,
+      1
+    ]
+  },
+  {
+    "name": "replace-and-repeat",
+    "actions": [
+      0,
+      1,
+      1,
+      4,
+      1,
+      0,
+      1
+    ]
+  },
+  {
+    "name": "malformed-after-baseline",
+    "actions": [
+      0,
+      2,
+      1,
+      3,
+      2,
+      1
+    ]
+  }
+]

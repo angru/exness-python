@@ -102,7 +102,7 @@ def _trading_decoder(request_id: str) -> Callable[[str | bytes], TradingEvent]:
                     raise ProtocolError("WebSocket error returned an unknown request id")
                 raise WebSocketAPIError(error.id, error.code, error.error_message)
             raise ProtocolError("Unexpected transactions stream event")
-        except (ValueError, ValidationError):
+        except (ValueError, ValidationError, RecursionError):
             raise ProtocolError("Invalid transactions stream message") from None
 
     return decode

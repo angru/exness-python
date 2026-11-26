@@ -99,7 +99,7 @@ part of this plan.
 | 5 | Installed-package consumer checks | Exercise current exports, request/response types and trading/wait entry points from an installed Python artifact and an independent Go module; update API review tables/counts; run without live credentials |
 
 - [x] 1. [Response validation audit and shared regression corpus](https://github.com/angru/exness-python/issues/1).
-- [ ] 2. [Decoder fuzzing and generated event sequences](https://github.com/angru/exness-python/issues/2).
+- [x] 2. [Decoder fuzzing and generated event sequences](https://github.com/angru/exness-python/issues/2).
 - [ ] 3. [Automated fixture and behavioral parity checks](https://github.com/angru/exness-python/issues/3).
 - [ ] 4. [Local lifecycle stress and reproducible benchmarks](https://github.com/angru/exness-python/issues/4).
 - [ ] 5. [Installed-package checks and current public API documentation](https://github.com/angru/exness-python/issues/5).

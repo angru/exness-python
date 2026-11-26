@@ -86,7 +86,7 @@ def _event_decoder(
                     raise ProtocolError("WebSocket error returned an unknown request id")
                 raise WebSocketAPIError(error.id, error.code, error.error_message)
             return parse(message)
-        except (ValueError, ValidationError):
+        except (ValueError, ValidationError, RecursionError):
             raise ProtocolError("Invalid server event message") from None
 
     return decode
