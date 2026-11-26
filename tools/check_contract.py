@@ -172,11 +172,13 @@ def operation_names(document: dict[str, JSON]) -> list[str]:
     )
 
 
-def make_report(before_bytes: bytes, after_bytes: bytes) -> dict[str, JSON]:
+def make_report(
+    before_bytes: bytes, after_bytes: bytes, *, include_impact: bool = False
+) -> dict[str, JSON]:
     before, after = parse_contract(before_bytes), parse_contract(after_bytes)
     changes = compare(before, after)
     old_operations, new_operations = set(operation_names(before)), set(operation_names(after))
-    return {
+    report: dict[str, JSON] = {
         "report_version": 1,
         "status": "review_required" if changes else "unchanged",
         "baseline_sha256": hashlib.sha256(before_bytes).hexdigest(),
@@ -194,6 +196,11 @@ def make_report(before_bytes: bytes, after_bytes: bytes) -> dict[str, JSON]:
             "Discovery/signing guides outside this YAML require separate review.",
         ],
     }
+    if include_impact:
+        from tools.contract_impact import impact
+
+        report["impact"] = impact(before, after, changes)
+    return report
 
 
 def read_file(path: Path) -> bytes:
@@ -252,6 +259,10 @@ def render(report: dict[str, JSON]) -> str:
         lines.append(f"[{_preview(change['area'])}] {change['kind']} {_preview(change['pointer'])}")
         lines.append(f"  before: {_preview(change['before'])}")
         lines.append(f"  after:  {_preview(change['after'])}")
+    if "impact" in report:
+        lines.append(
+            "Impact triage: " + json.dumps(report["impact"], ensure_ascii=True, sort_keys=True)
+        )
     lines.append(
         f"{len(changes)} structural change(s). Review both SDKs; compatibility is not inferred."
     )
@@ -268,6 +279,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--save-candidate", type=Path, help="Save candidate bytes to a NEW file for review"
     )
+    parser.add_argument("--impact", action="store_true", help="Include optional SDK impact triage")
     args = parser.parse_args(argv)
     try:
         outputs = [path for path in (args.json_report, args.save_candidate) if path is not None]
@@ -280,7 +292,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
         baseline = read_file(args.baseline)
         candidate = read_file(args.candidate) if args.candidate else download()
-        report = make_report(baseline, candidate)
+        report = make_report(baseline, candidate, include_impact=args.impact)
         report["source"] = str(args.candidate) if args.candidate else SOURCE_URL
         if args.json_report:
             with args.json_report.open("x", encoding="utf-8") as stream:

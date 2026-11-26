@@ -158,3 +158,7 @@ Worker Board completed implementation, verification and independent review for e
   results and uncertain outcomes; do not add them as routine REST wrappers.
 - Package registry publication and stable-version claims are separate steps from
   publishing source on GitHub.
+
+## Open: contract impact triage
+
+- [ ] [Review SDK impact of OpenAPI drift](https://github.com/angru/exness-python/issues/10).
