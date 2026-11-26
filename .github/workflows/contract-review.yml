@@ -18,6 +18,7 @@ jobs:
         run: |
           mkdir contract-review
           uv run python -m tools.check_contract \
+            --impact \
             --json-report contract-review/report.json \
             --save-candidate contract-review/upstream.yaml \
             > contract-review/report.txt

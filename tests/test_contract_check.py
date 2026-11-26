@@ -246,3 +246,71 @@ def test_cli_online_path_and_output_conflicts(
     )
     assert not output.exists()
     assert check.main(["--baseline", str(tmp_path / "missing")]) == 2
+
+
+def test_impact_transitive_cycle_escaping_and_operation_changes() -> None:
+    before = check.parse_contract(SIMPLE)
+    paths = before["paths"]
+    assert isinstance(paths, dict)
+    paths["/a~/b"] = {
+        "parameters": [{"$ref": "#/components/schemas/A~1B"}],
+        "post": {"operationId": "unknown"},
+    }
+    components = before["components"]
+    assert isinstance(components, dict) and isinstance(components["schemas"], dict)
+    schemas = components["schemas"]
+    schemas["A/B"] = {"$ref": "#/components/schemas/C~0D"}
+    schemas["C~D"] = {"allOf": [{"$ref": "#/components/schemas/A~1B"}], "type": "string"}
+    after = copy.deepcopy(before)
+    after_paths = after["paths"]
+    assert isinstance(after_paths, dict)
+    del after_paths["/orders"]
+    after_paths["/new"] = {"get": {"operationId": "newOperation"}}
+    after_schemas = after["components"]["schemas"]  # type: ignore[index,call-overload]
+    after_schemas["C~D"]["type"] = "integer"  # type: ignore[index,call-overload]
+    report = check.make_report(
+        json.dumps(before).encode(), json.dumps(after).encode(), include_impact=True
+    )
+    impact = report["impact"]
+    assert isinstance(impact, dict) and isinstance(impact["changes"], list)
+    entries = {entry["pointer"]: entry for entry in impact["changes"] if isinstance(entry, dict)}
+    shared = entries["/components/schemas/C~0D/type"]
+    assert shared["unmapped"] is True
+    assert shared["endpoints"][0]["endpoint"] == "POST /a~/b"  # type: ignore[index,call-overload]
+    assert shared["endpoints"][0]["unmapped_operation_ids"] == ["unknown"]  # type: ignore[index,call-overload]
+    assert entries["/paths/~1orders"]["endpoints"][0]["endpoint"] == "GET /orders"  # type: ignore[index,call-overload]
+    assert entries["/paths/~1new"]["endpoints"][0]["endpoint"] == "GET /new"  # type: ignore[index,call-overload]
+    assert "impact" not in check.make_report(SIMPLE, SIMPLE)
+
+
+def test_impact_pinned_contract_local_mutation() -> None:
+    original = check.read_file(check.BASELINE)
+    candidate = original.replace(
+        b"operationId: getCandleHistory",
+        b"operationId: getCandleHistory\n      x-local-review: true",
+        1,
+    )
+    report = check.make_report(original, candidate, include_impact=True)
+    assert "get_candle_history" in check.render(report)
+    assert "GetCandleHistory" in check.render(report)
+
+
+def test_impact_path_parameters_and_external_refs() -> None:
+    before = check.parse_contract(SIMPLE)
+    paths = before["paths"]
+    assert isinstance(paths, dict) and isinstance(paths["/orders"], dict)
+    paths["/orders"]["parameters"] = [{"$ref": "https://example.test/schema"}]
+    after = copy.deepcopy(before)
+    after_paths = after["paths"]
+    assert isinstance(after_paths, dict) and isinstance(after_paths["/orders"], dict)
+    after_paths["/orders"]["parameters"] = [{"name": "changed", "in": "query"}]
+    report = check.make_report(
+        json.dumps(before).encode(), json.dumps(after).encode(), include_impact=True
+    )
+    impact = report["impact"]
+    assert isinstance(impact, dict) and isinstance(impact["changes"], list)
+    entry = impact["changes"][0]
+    assert isinstance(entry, dict) and isinstance(entry["endpoints"], list)
+    endpoint = entry["endpoints"][0]
+    assert isinstance(endpoint, dict) and endpoint["endpoint"] == "GET /orders"
+    assert endpoint["reasons"] == ["operation or path-level parameters"]

@@ -161,3 +161,10 @@ same documented-null policy as optional SL/TP fields.
 Instrument names consisting solely of `.` or `..` are rejected for the conditions
 path to avoid URL dot-segment normalization. Operation IDs follow uint64 string
 syntax; response identity comparison is numeric so leading zeros remain usable.
+
+Add `--impact` to include offline SDK review hints in text and JSON reports. The
+manual workflow includes them. Changes are attributed through local references
+on either contract side, including path parameters; external references are not
+followed. The deliberately small Python/Go mapping is maintained in
+`tools/contract_impact.py`, and missing mappings remain explicit. These hints,
+including documentation changes, do not establish runtime impact or compatibility.
