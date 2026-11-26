@@ -6,7 +6,7 @@ import pytest
 import yaml
 from conftest import fixture_bytes
 from jsonschema import Draft202012Validator, FormatChecker
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -14,6 +14,7 @@ from exness.events import AccountStateEvent, HmrSnapshot, HmrUpdate, InstrumentE
 from exness.models import (
     AccountDetails,
     AccountState,
+    AckResponse,
     APIModel,
     DealHistoryItem,
     HistoryPage,
@@ -26,12 +27,16 @@ from exness.models import (
     TradingSnapshot,
     WebSocketErrorResponse,
 )
+from exness.requests import OpenPositionRequest
 from exness.trading import TradingSnapshotEvent, TransactionEvent
 
 
 @pytest.mark.parametrize(
     ("name", "schema", "model"),
     [
+        ("open_position_request", "OpenPositionRequest", OpenPositionRequest),
+        ("ack_accepted", "AckResponse", AckResponse),
+        ("ack_without_id", "AckResponse", AckResponse),
         ("account", "AccountDetailsResponse", AccountDetails),
         ("account_state_event", "WSTradingEvent", AccountStateEvent),
         ("instrument_new", "WSTradingEvent", InstrumentEvent),
@@ -65,7 +70,7 @@ from exness.trading import TradingSnapshotEvent, TransactionEvent
     ],
 )
 def test_fixtures_match_pinned_openapi_and_sdk(
-    name: str, schema: str, model: type[APIModel]
+    name: str, schema: str, model: type[BaseModel]
 ) -> None:
     contract_path = Path(__file__).parents[1] / "contracts/trading.public.yaml"
     contract = yaml.safe_load(contract_path.read_text())

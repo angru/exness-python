@@ -70,7 +70,19 @@ ambiguity and the request-selected validation approach are documented in
 - Prepared alpha 7 tags, release notes and reproducible install instructions.
   See API_REVIEW.md and RELEASE.md.
 
-## Next: live interoperability and user feedback
+## In progress: trading operations
+
+See [TRADING_WRITES.md](TRADING_WRITES.md) for the shared design and acceptance criteria.
+
+- [x] Stage 1: exact-byte mutation signing, explicit keys, opening-position and ACK models.
+- [ ] Stage 2: five submission methods, remaining request types and unknown-outcome handling.
+- [ ] Stage 3: bounded result tracking and event correlation.
+- [ ] Stage 4: offline recovery examples and cross-SDK scenarios.
+- [ ] Stage 5: explicitly authorized live interoperability when an account is available.
+
+Stages 1–4 do not require live access. Registry publication remains deferred.
+
+## Deferred: live interoperability and user feedback
 
 - Add an explicitly enabled read-only live smoke workflow when credentials and a
   test account are available; retain the unverified-live disclosure until then.

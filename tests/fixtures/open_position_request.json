@@ -1,0 +1,10 @@
+{
+  "instrument": "EURUSD",
+  "side": "buy",
+  "volume": "0.01000000",
+  "price": "1.08340",
+  "deviation": "2.5",
+  "stop_loss_price": "1.08000",
+  "take_profit_price": "1.09000",
+  "comment": "тест <>&"
+}

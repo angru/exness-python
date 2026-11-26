@@ -1,0 +1,37 @@
+{
+  "provenance": "OpenSSL 3.6.5 pkeyutl -sign -rawin; RFC 8032 section 7.1 test key; never production credentials",
+  "api_key": "exnsk-synthetic-test",
+  "private_key_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "vectors": [
+    {
+      "method": "POST",
+      "path": "/v1/trading/accounts/123456/positions",
+      "body_utf8": "{\"instrument\":\"EURUSD\",\"side\":\"buy\",\"volume\":\"0.01000000\",\"price\":\"1.08340\",\"deviation\":\"2.5\",\"stop_loss_price\":\"1.08000\",\"take_profit_price\":\"1.09000\",\"comment\":\"тест <>&\"}",
+      "idempotency_key": "trade-test-0001",
+      "timestamp_ms": 1773656070123,
+      "payload_utf8": "{\"api_key\":\"exnsk-synthetic-test\",\"idempotency_key\":\"trade-test-0001\",\"timestamp\":1773656070123,\"sign_version\":1,\"method\":\"POST\",\"path\":\"/v1/trading/accounts/123456/positions\",\"body_hash\":\"O69bIhRDEOo2UlhDJcXWAQ-DSaxlRpEmMLlpEfB7W1A\"}",
+      "exn_data": "eyJhcGlfa2V5IjoiZXhuc2stc3ludGhldGljLXRlc3QiLCJpZGVtcG90ZW5jeV9rZXkiOiJ0cmFkZS10ZXN0LTAwMDEiLCJ0aW1lc3RhbXAiOjE3NzM2NTYwNzAxMjMsInNpZ25fdmVyc2lvbiI6MSwibWV0aG9kIjoiUE9TVCIsInBhdGgiOiIvdjEvdHJhZGluZy9hY2NvdW50cy8xMjM0NTYvcG9zaXRpb25zIiwiYm9keV9oYXNoIjoiTzY5YkloUkRFT28yVWxoREpjWFdBUS1EU2F4bFJwRW1NTGxwRWZCN1cxQSJ9",
+      "exn_sign": "b3VjTWkvaS9bdBKLbexBX2y5t2T8cPHRLggPA47SiwWJWYPCpRmWisNDHoGOtABGvXlWWBS8r-b7_smo7qedDQ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/trading/accounts/123456/orders/000456",
+      "body_utf8": "{\"stop_loss_price\":null,\"take_profit_price\":\"1.09000\"}",
+      "idempotency_key": "trade-test-0001",
+      "timestamp_ms": 1773656070123,
+      "payload_utf8": "{\"api_key\":\"exnsk-synthetic-test\",\"idempotency_key\":\"trade-test-0001\",\"timestamp\":1773656070123,\"sign_version\":1,\"method\":\"PATCH\",\"path\":\"/v1/trading/accounts/123456/orders/000456\",\"body_hash\":\"EEQAOkAbQcZi0wkmxYsHO72eI0AcV-V6HXSYE_-Y3uI\"}",
+      "exn_data": "eyJhcGlfa2V5IjoiZXhuc2stc3ludGhldGljLXRlc3QiLCJpZGVtcG90ZW5jeV9rZXkiOiJ0cmFkZS10ZXN0LTAwMDEiLCJ0aW1lc3RhbXAiOjE3NzM2NTYwNzAxMjMsInNpZ25fdmVyc2lvbiI6MSwibWV0aG9kIjoiUEFUQ0giLCJwYXRoIjoiL3YxL3RyYWRpbmcvYWNjb3VudHMvMTIzNDU2L29yZGVycy8wMDA0NTYiLCJib2R5X2hhc2giOiJFRVFBT2tBYlFjWmkwd2tteFlzSE83MmVJMEFjVi1WNkhYU1lFXy1ZM3VJIn0",
+      "exn_sign": "HwFdZonPgkFn9dMekJZI_-0CNi0Wa-IscDkq5E6fgMDdqSpfBTIUbFCylY_uRNFBUGhtT9-NGWxiSe9xnV0HDg"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/trading/accounts/123456/positions/789?volume=0.0100&price=%2B1.08340",
+      "body_utf8": "",
+      "idempotency_key": "trade-test-0001",
+      "timestamp_ms": 1773656070123,
+      "payload_utf8": "{\"api_key\":\"exnsk-synthetic-test\",\"idempotency_key\":\"trade-test-0001\",\"timestamp\":1773656070123,\"sign_version\":1,\"method\":\"DELETE\",\"path\":\"/v1/trading/accounts/123456/positions/789?volume=0.0100&price=%2B1.08340\",\"body_hash\":\"47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU\"}",
+      "exn_data": "eyJhcGlfa2V5IjoiZXhuc2stc3ludGhldGljLXRlc3QiLCJpZGVtcG90ZW5jeV9rZXkiOiJ0cmFkZS10ZXN0LTAwMDEiLCJ0aW1lc3RhbXAiOjE3NzM2NTYwNzAxMjMsInNpZ25fdmVyc2lvbiI6MSwibWV0aG9kIjoiREVMRVRFIiwicGF0aCI6Ii92MS90cmFkaW5nL2FjY291bnRzLzEyMzQ1Ni9wb3NpdGlvbnMvNzg5P3ZvbHVtZT0wLjAxMDAmcHJpY2U9JTJCMS4wODM0MCIsImJvZHlfaGFzaCI6IjQ3REVRcGo4SEJTYS1fVEltVy01SkNldVFlUmttNU5NcEpXWkczaFN1RlUifQ",
+      "exn_sign": "spbNT2OMDxXp3JUsJnYZLmmL363EOvPkmCj4zmgvRM5RRGzlHywFBmKcm3DckBitwOLlEtDBkNdO9BCYEXevDQ"
+    }
+  ]
+}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Document the staged trading-write plan and implement its first foundation:
+  validated opening-position/ACK models and exact-body mutation signing with
+  explicit idempotency keys. Client submission methods remain planned.
+- Share OpenSSL-generated POST/PATCH/DELETE signing vectors with Go and verify
+  signed method, path/query and body bytes over local TLS, including Unicode.
 - Limit sync and async REST response bodies to 16 MiB after decompression,
   including error responses; close oversized responses without draining them.
 - Interrupt WebSocket discovery, handshake and reconnect waits on client closure,

@@ -10,7 +10,15 @@ import re
 from decimal import Decimal
 from typing import Annotated, Generic, Literal, TypeVar
 
-from pydantic import AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field, FiniteFloat
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    field_validator,
+)
 
 
 def _decimal_string(value: object) -> Decimal:
@@ -47,6 +55,21 @@ class APIModel(BaseModel):
 class AccessPoint(APIModel):
     access_point: str
     account_id: Identifier | None = None
+
+
+class AckResponse(APIModel):
+    """Admission acknowledgement, not execution success; operation ID may be absent."""
+
+    status: Literal["accepted"]
+    operation_id: Identifier | None = None
+    client_request_id: str | None = None
+
+    @field_validator("operation_id")
+    @classmethod
+    def _uint64_operation_id(cls, value: str | None) -> str | None:
+        if value is not None and int(value) >= 2**64:
+            raise ValueError("operation_id must fit uint64")
+        return value
 
 
 class PublicError(APIModel):

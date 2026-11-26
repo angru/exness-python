@@ -22,6 +22,16 @@ remain future work.
 The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
+## Trading support in development
+
+The next milestone is typed trading submission followed by explicit result tracking.
+The [implementation plan](TRADING_WRITES.md) defines five stages, the planned methods,
+idempotency rules, acknowledgement handling and recovery after an uncertain outcome.
+On `main`, stage 1 implements request encoding/signing, `exness.requests.OpenPositionRequest`
+and `exness.models.AckResponse`. Client submission methods follow in stage 2.
+Stages 1–4 use offline tests; live interoperability is a separate final check.
+See [ROADMAP.md](ROADMAP.md) for status. These additions are not in the alpha 7 tag.
+
 ## Installation and local setup
 
 Until a PyPI release is available, install directly from GitHub:

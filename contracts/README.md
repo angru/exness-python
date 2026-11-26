@@ -122,6 +122,13 @@ vector intended for reuse in the Go SDK. Its signature was produced independentl
 with OpenSSL 3.6.5 `pkeyutl -sign -rawin`, using the RFC 8032 seed wrapped in PKCS#8
 DER. Tests compare the SDK output byte-for-byte; OpenSSL is not required at test time.
 
+`tests/fixtures/mutation-signing-vectors.json` extends that independent OpenSSL
+procedure to POST with a Unicode JSON body, PATCH with explicit null, and DELETE
+with an encoded query and empty body. The same vectors and opening-position/ACK
+fixtures are copied into Go's `testdata/`. These are stage-1 foundation checks;
+they do not imply client submission methods are implemented. See
+[TRADING_WRITES.md](../TRADING_WRITES.md) for the implementation stages.
+
 ## Candle schema ambiguity
 
 Confirmed against the unchanged official YAML on 2026-11-19: the

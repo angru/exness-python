@@ -1,4 +1,4 @@
-"""Ed25519 signing for the read-only EXN protocol."""
+"""Ed25519 signing of exact request bytes for the EXN protocol."""
 
 from __future__ import annotations
 
@@ -60,24 +60,40 @@ class _Signer:
 
     def get_headers(self, path: str) -> dict[str, str]:
         """Sign the final encoded path and query of a bodyless GET request."""
+        return self.request_headers("GET", path)
+
+    def request_headers(
+        self, method: str, path: str, *, body: bytes = b"", idempotency_key: str = ""
+    ) -> dict[str, str]:
+        """Sign bytes already encoded by the caller, without changing them."""
+        if method == "GET":
+            if body or idempotency_key:
+                raise ValueError("Signed GET requires an empty body and idempotency key")
+        elif method in ("POST", "PATCH", "DELETE"):
+            if not re.fullmatch(r"[A-Za-z0-9._~-]{5,128}", idempotency_key):
+                raise ValueError(
+                    "Invalid idempotency key: expected 5..128 URL-safe ASCII characters"
+                )
+        else:
+            raise ValueError("Unsupported signed HTTP method")
         timestamp = int(self._clock() * 1000)
         api_key = self._credentials._api_key
         payload = json.dumps(
             {
                 "api_key": api_key,
-                "idempotency_key": "",
+                "idempotency_key": idempotency_key,
                 "timestamp": timestamp,
                 "sign_version": 1,
-                "method": "GET",
+                "method": method,
                 "path": path,
-                "body_hash": _base64url(hashlib.sha256(b"").digest()),
+                "body_hash": _base64url(hashlib.sha256(body).digest()),
             },
             separators=(",", ":"),
             ensure_ascii=False,
         ).encode("utf-8")
         return {
             "EXN-API-KEY": api_key,
-            "EXN-IDEMPOTENCY-KEY": "",
+            "EXN-IDEMPOTENCY-KEY": idempotency_key,
             "EXN-TIMESTAMP": str(timestamp),
             "EXN-SIGN-VERSION": "1",
             "EXN-DATA": _base64url(payload),

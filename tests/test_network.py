@@ -79,9 +79,10 @@ def serve_tls(
 
         def do_GET(self) -> None:
             request = httpx.Request(
-                "GET",
+                self.command,
                 "https://" + self.headers["Host"] + self.path,
                 headers=list(self.headers.items()),
+                content=self.rfile.read(int(self.headers.get("Content-Length", "0"))),
             )
             requests.put((request, self.client_address[1]))
             try:
@@ -89,6 +90,10 @@ def serve_tls(
             except Exception as error:
                 failures.put(error)
                 self.close_connection = True
+
+        do_POST = do_GET
+        do_PATCH = do_GET
+        do_DELETE = do_GET
 
         def log_message(self, format: str, *args: object) -> None:
             pass
