@@ -41,6 +41,16 @@ jobs:
           python3 python-sdk/tools/check_parity.py
           --python-root python-sdk --go-root go-sdk
           --peer go --peer-revision "$PEER_REVISION"
+      - name: Compare public SDKs over loopback TLS
+        working-directory: python-sdk
+        env:
+          UV_OFFLINE: "1"
+          PEER_REVISION: ${{ steps.peer.outputs.revision }}
+        run: |
+          unformatted=$(gofmt -l tools/transport_driver.go)
+          test -z "$unformatted"
+          uv run --no-sync python -m tools.check_transport \
+            --go-root ../go-sdk --go-revision "$PEER_REVISION"
 
   check:
     runs-on: ubuntu-latest
