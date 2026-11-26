@@ -20,8 +20,15 @@ from websockets.frames import Close
 from websockets.http11 import Request
 from websockets.server import ServerProtocol
 
-from exness import AsyncExnessClient, Credentials, UnknownOutcomeError
-from exness.models import AckResponse
+from exness import (
+    AsyncExnessClient,
+    Credentials,
+    OperationReference,
+    TransportError,
+    UnknownOutcomeError,
+)
+from exness.auth import _Signer
+from exness.models import AckResponse, OperationStatus
 from exness.requests import OpenPositionRequest
 from tools import check_transport as transport
 from tools.transport_transcript import (
@@ -29,6 +36,7 @@ from tools.transport_transcript import (
     ACCOUNT_PATH,
     DISCOVERY_PATH,
     EXPECTED,
+    OPERATION_STATUS_PATH,
     POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
@@ -36,7 +44,7 @@ from tools.transport_transcript import (
     compare_transcripts,
 )
 
-WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY)
+WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY, Scenario.ACKNOWLEDGED_OPEN)
 STREAM_SCENARIOS = [scenario for scenario in Scenario if scenario not in WRITE_SCENARIOS]
 
 
@@ -121,7 +129,7 @@ async def test_python_scenarios_without_sockets(
     script.origin = "https://127.0.0.1"
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ws = Mock(respond=ServerProtocol().reject)
-    https = Mock(spec=transport.LostAckServer, origin="https://127.0.0.1:4443", active=None)
+    https = Mock(spec=transport.WriteServer, origin="https://127.0.0.1:4443", active=None)
     recovers_write = scenario is Scenario.LOST_ACK_RECOVERY
     if failure == "expected a matching terminal transaction":
         script.matching_transaction = script.foreign_transaction
@@ -139,7 +147,7 @@ async def test_python_scenarios_without_sockets(
 
         monkeypatch.setattr(AsyncExnessClient, "open_position", lose_key)
 
-    observed_write: transport.LostAckWire | None = None
+    observed_write: transport.WriteWire | None = None
 
     def dispatch(request: httpx.Request) -> httpx.Response:
         nonlocal observed_write
@@ -204,12 +212,12 @@ async def test_python_scenarios_without_sockets(
     assert script.active is None and https.active is None
 
 
-def exchange_http(server: transport.LostAckServer, request: httpx.Request) -> bytes:
+def exchange_http(server: transport.WriteServer, request: httpx.Request) -> bytes:
     line = request.method.encode() + b" " + request.url.raw_path + b" HTTP/1.1\r\n"
     headers = b"".join(name + b": " + value + b"\r\n" for name, value in request.headers.raw)
     connection = Mock()
     connection.makefile.return_value = BytesIO(line + headers + b"\r\n" + request.content)
-    transport.LostAckHandler(connection, (transport.LOOPBACK, 12345), server)
+    transport.WriteHandler(connection, (transport.LOOPBACK, 12345), server)
     return b"".join(call.args[0] for call in connection.sendall.call_args_list)
 
 
@@ -228,9 +236,9 @@ def exchange_http(server: transport.LostAckServer, request: httpx.Request) -> by
 async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
     monkeypatch: pytest.MonkeyPatch, case: str, failure: str | None, posts: int
 ) -> None:
-    server = Mock(spec=transport.LostAckServer, origin="https://127.0.0.1", active=None)
+    server = Mock(spec=transport.WriteServer, origin="https://127.0.0.1", active=None)
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    observation: transport.LostAckWire | None = None
+    observation: transport.WriteWire | None = None
 
     def dispatch(request: httpx.Request) -> httpx.Response:
         nonlocal observation
@@ -278,15 +286,120 @@ async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
         assert observation.paths == [DISCOVERY_PATH]
 
 
-def test_derived_trading_frames_match_pinned_schema() -> None:
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("case", "failure", "posts", "polls"),
+    [
+        ("valid", None, 1, 2),
+        ("wrong_target", "unexpected operation status target", 1, 0),
+        ("wrong_id", "unexpected operation status target", 1, 0),
+        ("before_ack", "operation status requested before acknowledgement", 1, 2),
+        ("extra_poll", "unexpected extra operation status request", 1, 2),
+        ("duplicate", "duplicate POST", 2, 2),
+    ],
+)
+async def test_acknowledged_open_without_sockets(
+    monkeypatch: pytest.MonkeyPatch,
+    credentials: Credentials,
+    case: str,
+    failure: str | None,
+    posts: int,
+    polls: int,
+) -> None:
+    scenario = Scenario.ACKNOWLEDGED_OPEN
+    server = Mock(spec=transport.WriteServer, origin="https://127.0.0.1", active=None)
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    signer = _Signer(credentials)
+    observation: transport.WriteWire | None = None
+    ack_schema = contract_validator("AckResponse")
+    status_schema = contract_validator("OperationStatusResponse")
+
+    def status_request(target: str) -> httpx.Request:
+        return httpx.Request("GET", server.origin + target, headers=signer.get_headers(target))
+
+    def dispatch(request: httpx.Request) -> httpx.Response:
+        nonlocal observation
+        observation = server.active
+        assert observation is not None
+        if request.method == "POST" and case == "before_ack":
+            assert exchange_http(server, status_request(OPERATION_STATUS_PATH)) == b""
+        if request.url.path == OPERATION_STATUS_PATH and case in ("wrong_target", "wrong_id"):
+            # An equivalent numeric ID still changes the signed request target.
+            wrong_id = "789" if case == "wrong_target" else "790"
+            wrong_target = f"/v1/trading/accounts/123456/operations/{wrong_id}"
+            assert exchange_http(server, status_request(wrong_target)) == b""
+            raise httpx.RemoteProtocolError("synthetic rejected request")
+        if case == "extra_poll" and observation.status_responses == ["pending", "confirmed"]:
+            assert request.url.path == OPERATION_STATUS_PATH
+            assert exchange_http(server, request) == b""
+            raise httpx.RemoteProtocolError("synthetic rejected extra poll")
+
+        raw_response = exchange_http(server, request)
+        headers, body = raw_response.split(b"\r\n\r\n", 1)
+        code = int(headers.split(b" ", 2)[1])
+        if request.method == "POST":
+            assert code == HTTPStatus.ACCEPTED
+            ack_schema.validate(json.loads(body))
+            if case == "duplicate":
+                assert exchange_http(server, request) == b""
+        else:
+            assert code == HTTPStatus.OK
+            if request.url.path == OPERATION_STATUS_PATH:
+                status_schema.validate(json.loads(body))
+        return httpx.Response(code, content=body)
+
+    monkeypatch.setattr(
+        httpx, "AsyncHTTPTransport", Mock(return_value=httpx.MockTransport(dispatch))
+    )
+    if case == "extra_poll":
+        wait_operation = AsyncExnessClient.wait_operation
+
+        async def wait_with_extra_poll(
+            client: AsyncExnessClient,
+            reference: OperationReference,
+            *,
+            timeout: float,
+            poll_interval: float,
+        ) -> OperationStatus:
+            result = await wait_operation(
+                client, reference, timeout=timeout, poll_interval=poll_interval
+            )
+            assert result.status == "confirmed" and reference.operation_id is not None
+            with pytest.raises(TransportError):
+                await client.get_operation_status(reference.operation_id)
+            return result
+
+        monkeypatch.setattr(AsyncExnessClient, "wait_operation", wait_with_extra_poll)
+
+    async def driver() -> dict[str, object]:
+        return await transport.run_python(server.origin, tls, scenario)
+
+    if failure is None:
+        result = await transport.observe(None, scenario, "Python", driver, https=server)
+        compare_transcripts(scenario, result, EXPECTED[scenario])
+    else:
+        with pytest.raises(transport.CheckError, match=f"{scenario}: Python: {failure}"):
+            await transport.observe(None, scenario, "Python", driver, https=server)
+
+    assert server.active is None
+    assert observation is not None and observation.post_count == posts
+    assert observation.status_responses == ["pending", "confirmed"][:polls]
+    assert observation.paths == [DISCOVERY_PATH, POSITIONS_PATH, *([OPERATION_STATUS_PATH] * polls)]
+
+
+def contract_validator(schema: str) -> Draft202012Validator:
     contract_path = transport.ROOT / "contracts/trading.public.yaml"
     contract = yaml.safe_load(contract_path.read_text())
     resource = Resource.from_contents(contract, default_specification=DRAFT202012)
-    validator = Draft202012Validator(
-        {"$ref": "urn:exness:trading#/components/schemas/WSTradingEvent"},
+    return Draft202012Validator(
+        {"$ref": f"urn:exness:trading#/components/schemas/{schema}"},
         registry=Registry().with_resource("urn:exness:trading", resource),
         format_checker=FormatChecker(),
     )
+
+
+def test_derived_trading_frames_match_pinned_schema() -> None:
+    validator = contract_validator("WSTradingEvent")
     script = transport.FixtureServer()
     for frame in (
         script.replacement_snapshot,
@@ -318,7 +431,7 @@ async def test_transaction_subscription_id_must_change_on_reconnect() -> None:
 
 def test_recovery_discovery_requires_verified_post_receipt() -> None:
     script = transport.FixtureServer()
-    write = transport.LostAckWire(post_count=1)
+    write = transport.WriteWire(Scenario.LOST_ACK_RECOVERY, post_count=1)
     wire = transport.WireTranscript(Scenario.LOST_ACK_RECOVERY, write=write)
     script.active = wire
     ws = Mock(respond=ServerProtocol().reject)

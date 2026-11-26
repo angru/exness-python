@@ -43,15 +43,17 @@ from exness import (
     TradingStreamGap,
     UnknownOutcomeError,
 )
-from exness.models import Tick
+from exness.models import AckResponse, Tick
 from exness.requests import OpenPositionRequest
 from exness.trading import TradingEvent, TradingSnapshotEvent, TransactionEvent
 from tools.check_parity import ParityError, verify_peer
 from tools.transport_transcript import (
     ACCOUNT,
     ACCOUNT_PATH,
+    ACKNOWLEDGED_OPEN_KEY,
     DISCOVERY_PATH,
     OPEN_ORDER,
+    OPERATION_STATUS_PATH,
     POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
@@ -73,6 +75,7 @@ IO_TIMEOUT = 3
 PEER_TIMEOUT = 15
 BUILD_TIMEOUT = 120
 MAX_ORDER_BODY = 1024
+STATUS_FIXTURES = ("operation_pending.json", "operation_confirmed.json")
 
 
 class CheckError(Exception):
@@ -82,7 +85,7 @@ class CheckError(Exception):
 @dataclass
 class WireTranscript:
     scenario: Scenario
-    write: LostAckWire | None = None
+    write: WriteWire | None = None
     paths: list[str] = field(default_factory=list)
     subscriptions: list[object] = field(default_factory=list)
     subscription_ids: set[str] = field(default_factory=set)
@@ -228,16 +231,27 @@ class FixtureServer:
 
 
 @dataclass
-class LostAckWire:
+class WriteWire:
+    scenario: Scenario
     paths: list[str] = field(default_factory=list)
     post_count: int = 0
     receipt: dict[str, object] | None = None
+    status_responses: list[object] = field(default_factory=list)
     failure: str | None = None
 
+    @property
+    def key(self) -> str:
+        return ACKNOWLEDGED_OPEN_KEY if self.scenario is Scenario.ACKNOWLEDGED_OPEN else WRITE_KEY
 
-class LostAckHandler(BaseHTTPRequestHandler):
+
+def acknowledged_response(fixture: str) -> dict[str, object]:
+    body = json.loads((FIXTURES / fixture).read_text(encoding="utf-8"))
+    return {**body, "operation_id": "000789", "client_request_id": ACKNOWLEDGED_OPEN_KEY}
+
+
+class WriteHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server: LostAckServer
+    server: WriteServer
 
     def log_message(self, format: str, *args: object) -> None:
         pass
@@ -274,25 +288,46 @@ class LostAckHandler(BaseHTTPRequestHandler):
         if wire is None:
             return
         try:
-            if self.raw_target != DISCOVERY_PATH or wire.paths or wire.post_count:
+            target = self.raw_target
+            if target == DISCOVERY_PATH:
+                if wire.paths or wire.post_count:
+                    raise CheckError("unexpected discovery request")
+            elif wire.scenario is not Scenario.ACKNOWLEDGED_OPEN:
                 raise CheckError("unexpected discovery request")
+            elif target != OPERATION_STATUS_PATH:
+                raise CheckError("unexpected operation status target")
+            elif wire.receipt is None or not wire.receipt["acknowledgement_sent"]:
+                raise CheckError("operation status requested before acknowledgement")
+            elif len(wire.status_responses) >= len(STATUS_FIXTURES):
+                raise CheckError("unexpected extra operation status request")
             if self.headers.get_all("Transfer-Encoding") or (
                 self.headers.get_all("Content-Length") or []
             ) not in ([], ["0"]):
-                raise CheckError("unexpected discovery request body")
+                raise CheckError("unexpected GET request body")
             self.verify_signature()
-            wire.paths.append(self.raw_target)
-            body = json.dumps({"access_point": self.server.origin, "account_id": ACCOUNT}).encode()
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Connection", "close")
-            self.end_headers()
-            self.wfile.write(body)
+            wire.paths.append(target)
+            if target == DISCOVERY_PATH:
+                response: dict[str, object] = {
+                    "access_point": self.server.origin,
+                    "account_id": ACCOUNT,
+                }
+            else:
+                response = acknowledged_response(STATUS_FIXTURES[len(wire.status_responses)])
+                wire.status_responses.append(response["status"])
+            self.send_json(HTTPStatus.OK, response)
         except CheckError as error:
             wire.failure = wire.failure or str(error)
         except OSError:
-            wire.failure = wire.failure or "discovery response did not complete"
+            wire.failure = wire.failure or "GET response did not complete"
+
+    def send_json(self, status: HTTPStatus, response: dict[str, object]) -> None:
+        body = json.dumps(response).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(body)
 
     def read_order(self) -> bytes:
         lengths = self.headers.get_all("Content-Length") or []
@@ -327,7 +362,7 @@ class LostAckHandler(BaseHTTPRequestHandler):
             if self.raw_target != POSITIONS_PATH or wire.paths != [DISCOVERY_PATH]:
                 raise CheckError("unexpected order request")
             body = self.read_order()
-            self.verify_signature(body, WRITE_KEY)
+            self.verify_signature(body, wire.key)
             order = json.loads(body)
             if order != OPEN_ORDER:
                 raise CheckError("unexpected order fields")
@@ -337,26 +372,30 @@ class LostAckHandler(BaseHTTPRequestHandler):
                 "path": self.raw_target,
                 "order": order,
                 "signature_verified": True,
-                "idempotency_key": WRITE_KEY,
+                "idempotency_key": wire.key,
                 "acknowledgement_sent": False,
             }
-            # Return to the server so it closes the connection without writing an HTTP response.
+            if wire.scenario is Scenario.ACKNOWLEDGED_OPEN:
+                self.send_json(HTTPStatus.ACCEPTED, acknowledged_response("ack_accepted.json"))
+                wire.receipt["acknowledgement_sent"] = True
         except CheckError as error:
             wire.failure = wire.failure or str(error)
         except (ValueError, RecursionError):
             wire.failure = wire.failure or "invalid order JSON"
+        except OSError:
+            wire.failure = wire.failure or "acknowledgement response did not complete"
 
 
-class LostAckServer(HTTPServer):
+class WriteServer(HTTPServer):
     timeout = 0.05
 
     def __init__(self, tls: ssl.SSLContext) -> None:
         self.tls = tls
-        self.active: LostAckWire | None = None
+        self.active: WriteWire | None = None
         self._stopping = threading.Event()
         self._connection_lock = threading.Lock()
         self._connection: ssl.SSLSocket | None = None
-        super().__init__((LOOPBACK, 0), LostAckHandler)
+        super().__init__((LOOPBACK, 0), WriteHandler)
         self.origin = f"https://{LOOPBACK}:{self.server_port}"
 
     def get_request(self) -> tuple[socket.socket, tuple[str, int]]:
@@ -449,6 +488,8 @@ async def run_python(
                 return await run_python_ticks(client, tls)
             if scenario in (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT):
                 return await run_python_trading(client, tls, scenario)
+            if scenario is Scenario.ACKNOWLEDGED_OPEN:
+                return await run_python_acknowledged_open(client)
             error = await submit_lost_ack(client)
         report: dict[str, object] = {
             "outcome": {
@@ -470,15 +511,37 @@ async def run_python(
         raise CheckError("SDK did not complete the scenario") from None
 
 
-async def submit_lost_ack(client: AsyncExnessClient) -> UnknownOutcomeError:
+async def submit_open_position(client: AsyncExnessClient, key: str) -> AckResponse:
     request = OpenPositionRequest.model_validate(OPEN_ORDER)
+    return await client.open_position(request, idempotency_key=key)
+
+
+async def submit_lost_ack(client: AsyncExnessClient) -> UnknownOutcomeError:
     try:
-        await client.open_position(request, idempotency_key=WRITE_KEY)
+        await submit_open_position(client, WRITE_KEY)
     except UnknownOutcomeError as error:
         if error.idempotency_key != WRITE_KEY:
             raise CheckError("lost acknowledgement did not preserve the caller key") from None
         return error
     raise CheckError("expected UnknownOutcomeError after losing the acknowledgement")
+
+
+async def run_python_acknowledged_open(client: AsyncExnessClient) -> dict[str, object]:
+    ack = await submit_open_position(client, ACKNOWLEDGED_OPEN_KEY)
+    reference = OperationReference.from_ack(ack, client_request_id=ACKNOWLEDGED_OPEN_KEY)
+    result = await client.wait_operation(reference, timeout=IO_TIMEOUT, poll_interval=0.01)
+    return {
+        "ack": {
+            "status": ack.status,
+            "operation_id": ack.operation_id,
+            "client_request_id": ack.client_request_id,
+        },
+        "outcome": {
+            "status": result.status,
+            "operation_id": result.operation_id,
+            "client_request_id": result.client_request_id,
+        },
+    }
 
 
 async def run_python_ticks(client: AsyncExnessClient, tls: ssl.SSLContext) -> dict[str, object]:
@@ -664,6 +727,8 @@ async def run_go(
             fields = {"accounts", "tick", "error"}
         case Scenario.LOST_ACK:
             fields = {"outcome"}
+        case Scenario.ACKNOWLEDGED_OPEN:
+            fields = {"ack", "outcome"}
         case _:
             fields = {"events", "outcome"}
     if not isinstance(result, dict) or set(result) != fields:
@@ -677,12 +742,12 @@ async def observe(
     label: str,
     driver: Callable[[], Awaitable[dict[str, object]]],
     *,
-    https: LostAckServer | None = None,
+    https: WriteServer | None = None,
 ) -> dict[str, object]:
     stream = None
     write = None
     if https is not None:
-        write = https.active = LostAckWire()
+        write = https.active = WriteWire(scenario)
     if server is not None:
         stream = server.active = WireTranscript(scenario, write=write)
 
@@ -716,6 +781,8 @@ async def observe(
             "post_count": write.post_count,
             "receipt": write.receipt,
         }
+        if scenario is Scenario.ACKNOWLEDGED_OPEN:
+            result["status_responses"] = write.status_responses
     if stream is not None:
         paths_key = "paths" if write is None else "stream_paths"
         result = {**result, paths_key: stream.paths, "subscriptions": stream.subscriptions}
@@ -743,13 +810,19 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
         port = next(iter(server.sockets)).getsockname()[1]
         script.origin = f"https://{LOOPBACK}:{port}"
         report: dict[str, object] = {}
-        with LostAckServer(server_tls) as https:
+        with WriteServer(server_tls) as https:
             thread = threading.Thread(target=https.run, daemon=True)
             thread.start()
             try:
                 for scenario in Scenario:
-                    writes = scenario in (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY)
-                    stream = None if scenario is Scenario.LOST_ACK else script
+                    writes = scenario in (
+                        Scenario.LOST_ACK,
+                        Scenario.LOST_ACK_RECOVERY,
+                        Scenario.ACKNOWLEDGED_OPEN,
+                    )
+                    stream = (
+                        script if not writes or scenario is Scenario.LOST_ACK_RECOVERY else None
+                    )
                     write = https if writes else None
                     origin = https.origin if writes else script.origin
                     stream_origin = (

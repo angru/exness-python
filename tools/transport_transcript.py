@@ -19,7 +19,10 @@ ACCOUNT_PATH = f"/v1/configuration/accounts/{ACCOUNT}/account"
 TICKS_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/ticks"
 TRADING_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/events"
 POSITIONS_PATH = f"/v1/trading/accounts/{ACCOUNT}/positions"
+# Pin the raw target independently of the ACK fixture and status bodies.
+OPERATION_STATUS_PATH = "/v1/trading/accounts/123456/operations/000789"
 WRITE_KEY = "transport-lost-ack-0001"
+ACKNOWLEDGED_OPEN_KEY = "transport-acknowledged-open-0001"
 OPEN_ORDER = {"instrument": "EURUSD", "side": "buy", "volume": "0.01"}
 
 
@@ -29,6 +32,7 @@ class Scenario(StrEnum):
     TRADING_MISSING_SNAPSHOT = "trading_missing_snapshot"
     LOST_ACK = "lost_ack"
     LOST_ACK_RECOVERY = "lost_ack_recovery"
+    ACKNOWLEDGED_OPEN = "acknowledged_open"
 
 
 EXPECTED_TICKS = {
@@ -54,14 +58,17 @@ TRADING_WIRE = {
     "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
     "subscriptions": [{"event": "transactions"}, {"event": "transactions"}],
 }
+OPEN_RECEIPT = {
+    "method": "POST",
+    "path": POSITIONS_PATH,
+    "order": OPEN_ORDER,
+    "signature_verified": True,
+}
 LOST_ACK_WIRE = {
     "paths": [DISCOVERY_PATH, POSITIONS_PATH],
     "post_count": 1,
     "receipt": {
-        "method": "POST",
-        "path": POSITIONS_PATH,
-        "order": OPEN_ORDER,
-        "signature_verified": True,
+        **OPEN_RECEIPT,
         "idempotency_key": WRITE_KEY,
         "acknowledgement_sent": False,
     },
@@ -115,6 +122,26 @@ EXPECTED: dict[Scenario, dict[str, object]] = {
                 "selected": {"operation_id": "789", "status": "rejected"},
             },
         ],
+    },
+    Scenario.ACKNOWLEDGED_OPEN: {
+        "paths": [DISCOVERY_PATH, POSITIONS_PATH, OPERATION_STATUS_PATH, OPERATION_STATUS_PATH],
+        "post_count": 1,
+        "receipt": {
+            **OPEN_RECEIPT,
+            "idempotency_key": ACKNOWLEDGED_OPEN_KEY,
+            "acknowledgement_sent": True,
+        },
+        "status_responses": ["pending", "confirmed"],
+        "ack": {
+            "status": "accepted",
+            "operation_id": "000789",
+            "client_request_id": ACKNOWLEDGED_OPEN_KEY,
+        },
+        "outcome": {
+            "status": "confirmed",
+            "operation_id": "000789",
+            "client_request_id": ACKNOWLEDGED_OPEN_KEY,
+        },
     },
 }
 

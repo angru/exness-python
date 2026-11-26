@@ -159,15 +159,16 @@ Worker Board completed implementation, verification and independent review for e
 - Package registry publication and stable-version claims are separate steps from
   publishing source on GitHub.
 
-## Open: contract impact triage
+## Completed: contract impact triage
 
-- [ ] [Review SDK impact of OpenAPI drift](https://github.com/angru/exness-python/issues/10).
+- [x] [Review SDK impact of OpenAPI drift](https://github.com/angru/exness-python/issues/10).
 
 ## Cross-SDK transport check
 
 - The Python parity job compares both public clients against shared local TLS
   fixtures. See the [offline command](PARITY.md#compare-public-clients-over-loopback-tls)
   and [issue #14](https://github.com/angru/exness-python/issues/14).
-- [ ] [Compare transaction-stream recovery and missing-snapshot rejection](https://github.com/angru/exness-python/issues/16).
-- [ ] [Compare write receipt and unknown-outcome identity after a lost acknowledgement](https://github.com/angru/exness-python/issues/18).
-- [ ] [Verify lost-ACK recovery by matching a transaction without replaying the write](https://github.com/angru/exness-python/issues/20).
+- [x] [Compare transaction-stream recovery and missing-snapshot rejection](https://github.com/angru/exness-python/issues/16).
+- [x] [Compare write receipt and unknown-outcome identity after a lost acknowledgement](https://github.com/angru/exness-python/issues/18).
+- [x] [Verify lost-ACK recovery by matching a transaction without replaying the write](https://github.com/angru/exness-python/issues/20).
+- [x] [Compare acknowledged open-position submission and bounded status polling](https://github.com/angru/exness-python/issues/22).
