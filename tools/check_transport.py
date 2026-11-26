@@ -37,6 +37,7 @@ from exness import (
     AsyncExnessClient,
     Credentials,
     ExnessError,
+    OperationReference,
     ProtocolError,
     StreamOptions,
     TradingStreamGap,
@@ -81,6 +82,7 @@ class CheckError(Exception):
 @dataclass
 class WireTranscript:
     scenario: Scenario
+    write: LostAckWire | None = None
     paths: list[str] = field(default_factory=list)
     subscriptions: list[object] = field(default_factory=list)
     subscription_ids: set[str] = field(default_factory=set)
@@ -94,7 +96,11 @@ class WireTranscript:
 
     @property
     def expected_connections(self) -> int:
-        return 1 if self.scenario is Scenario.REST_TICKS else 2
+        return (
+            2
+            if self.scenario in (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT)
+            else 1
+        )
 
 
 class FixtureServer:
@@ -111,6 +117,11 @@ class FixtureServer:
         replacement = json.loads(self.snapshot)
         replacement["payload"]["account_state"]["balance"] = "12345678901234567790.113456789"
         self.replacement_snapshot = json.dumps(replacement)
+        self.foreign_transaction = json.dumps(
+            {**json.loads(self.partial_close), "client_request_id": "transport-foreign-0001"}
+        )
+        rejected = json.loads((FIXTURES / "transaction_rejected.json").read_text(encoding="utf-8"))
+        self.matching_transaction = json.dumps({**rejected, "client_request_id": WRITE_KEY})
 
     def process_request(self, ws: ServerConnection, request: Request) -> Response | None:
         wire = self.active
@@ -132,6 +143,8 @@ class FixtureServer:
         return response
 
     def record_request(self, wire: WireTranscript, request: Request) -> None:
+        if wire.write is not None and wire.write.receipt is None:
+            raise CheckError("recovery stream started before the verified POST receipt")
         limits = {DISCOVERY_PATH: 1, wire.upgrade_path: wire.expected_connections}
         if wire.scenario is Scenario.REST_TICKS:
             limits[ACCOUNT_PATH] = 2
@@ -190,6 +203,11 @@ class FixtureServer:
         if wire.scenario is Scenario.REST_TICKS:
             await ws.send(self.tick)
             await ws.send("{")
+        elif wire.scenario is Scenario.LOST_ACK_RECOVERY:
+            await ws.send(self.snapshot)
+            await ws.send(self.foreign_transaction)
+            await ws.send(self.matching_transaction)
+            await ws.close(code=1000)
         elif len(wire.subscriptions) == 1:
             await ws.send(self.snapshot)
             await ws.send(self.partial_close)
@@ -410,31 +428,29 @@ def make_tls(directory: Path) -> tuple[ssl.SSLContext, ssl.SSLContext, Path]:
     return server, client, cert_path
 
 
-async def run_python(origin: str, tls: ssl.SSLContext, scenario: Scenario) -> dict[str, object]:
+async def run_python(
+    origin: str, tls: ssl.SSLContext, scenario: Scenario, *, stream_origin: str | None = None
+) -> dict[str, object]:
     vector = json.loads(VECTOR.read_text(encoding="utf-8"))
-    try:
-        async with AsyncExnessClient(
-            credentials=Credentials(vector["api_key"], vector["private_key_hex"]),
+    credentials = Credentials(vector["api_key"], vector["private_key_hex"])
+
+    def make_client(discovery_url: str) -> AsyncExnessClient:
+        return AsyncExnessClient(
+            credentials=credentials,
             account_id=ACCOUNT,
-            discovery_url=origin,
+            discovery_url=discovery_url,
             timeout=IO_TIMEOUT,
             transport=httpx.AsyncHTTPTransport(verify=tls, trust_env=False),
-        ) as client:
+        )
+
+    try:
+        async with make_client(origin) as client:
             if scenario is Scenario.REST_TICKS:
                 return await run_python_ticks(client, tls)
-            if scenario is Scenario.LOST_ACK:
-                return await run_python_lost_ack(client)
-            return await run_python_trading(client, tls, scenario)
-    except (ExnessError, StopAsyncIteration):
-        raise CheckError("SDK did not complete the scenario") from None
-
-
-async def run_python_lost_ack(client: AsyncExnessClient) -> dict[str, object]:
-    request = OpenPositionRequest.model_validate(OPEN_ORDER)
-    try:
-        await client.open_position(request, idempotency_key=WRITE_KEY)
-    except UnknownOutcomeError as error:
-        return {
+            if scenario in (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT):
+                return await run_python_trading(client, tls, scenario)
+            error = await submit_lost_ack(client)
+        report: dict[str, object] = {
             "outcome": {
                 "error": "UnknownOutcomeError",
                 "method": error.method,
@@ -443,6 +459,25 @@ async def run_python_lost_ack(client: AsyncExnessClient) -> dict[str, object]:
                 "idempotency_key": error.idempotency_key,
             }
         }
+        if scenario is Scenario.LOST_ACK_RECOVERY:
+            if stream_origin is None:
+                raise CheckError("missing recovery stream fixture origin")
+            reference = OperationReference(client_request_id=error.idempotency_key)
+            async with make_client(stream_origin) as client:
+                report["events"] = await run_python_lost_ack_recovery(client, tls, reference)
+        return report
+    except (ExnessError, StopAsyncIteration):
+        raise CheckError("SDK did not complete the scenario") from None
+
+
+async def submit_lost_ack(client: AsyncExnessClient) -> UnknownOutcomeError:
+    request = OpenPositionRequest.model_validate(OPEN_ORDER)
+    try:
+        await client.open_position(request, idempotency_key=WRITE_KEY)
+    except UnknownOutcomeError as error:
+        if error.idempotency_key != WRITE_KEY:
+            raise CheckError("lost acknowledgement did not preserve the caller key") from None
+        return error
     raise CheckError("expected UnknownOutcomeError after losing the acknowledgement")
 
 
@@ -515,6 +550,32 @@ async def run_python_trading(
     return {"events": events, "outcome": outcome}
 
 
+async def run_python_lost_ack_recovery(
+    client: AsyncExnessClient, tls: ssl.SSLContext, reference: OperationReference
+) -> list[dict[str, object]]:
+    options = StreamOptions(open_timeout=IO_TIMEOUT)
+    events: list[dict[str, object]] = []
+    selected: dict[str, object] | None = None
+    async with aclosing(client.stream_trading(options=options, ssl_context=tls)) as stream:
+        async for event in stream:
+            observation = trading_observation(event)
+            if isinstance(event, TransactionEvent):
+                if not reference.matches_event(event):
+                    observation["decision"] = "ignored"
+                elif event.status is None:
+                    observation["decision"] = "matched_without_status"
+                else:
+                    if selected is not None:
+                        raise CheckError("extra matching terminal transaction")
+                    selected = {"operation_id": event.operation_id, "status": event.status}
+                    observation["decision"] = "selected"
+            observation["selected"] = selected
+            events.append(observation)
+    if selected is None:
+        raise CheckError("expected a matching terminal transaction")
+    return events
+
+
 def build_go(command: str, peer: Path, directory: Path) -> Path:
     shutil.copyfile(GO_DRIVER, directory / "main.go")
     # Start with the peer's exact dependency requirements and checksums. All
@@ -566,14 +627,21 @@ def build_go(command: str, peer: Path, directory: Path) -> Path:
 
 
 async def run_go(
-    binary: Path, origin: str, certificate: Path, scenario: Scenario
+    binary: Path,
+    origin: str,
+    certificate: Path,
+    scenario: Scenario,
+    *,
+    stream_origin: str | None = None,
 ) -> dict[str, object]:
+    extra_args = () if stream_origin is None else (stream_origin,)
     process = await asyncio.create_subprocess_exec(
         str(binary),
         origin,
         str(certificate),
         str(VECTOR),
         scenario,
+        *extra_args,
         env={},
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
@@ -604,51 +672,54 @@ async def run_go(
 
 
 async def observe(
-    server: FixtureServer,
+    server: FixtureServer | None,
     scenario: Scenario,
     label: str,
     driver: Callable[[], Awaitable[dict[str, object]]],
+    *,
+    https: LostAckServer | None = None,
 ) -> dict[str, object]:
-    wire = WireTranscript(scenario)
-    label = f"{scenario}: {label}"
-    server.active = wire
+    stream = None
+    write = None
+    if https is not None:
+        write = https.active = LostAckWire()
+    if server is not None:
+        stream = server.active = WireTranscript(scenario, write=write)
+
+    def wire_failure() -> str | None:
+        return (write.failure if write is not None else None) or (
+            stream.failure if stream is not None else None
+        )
+
     try:
         async with asyncio.timeout(PEER_TIMEOUT):
             result = await driver()
-            if wire.paths.count(wire.upgrade_path) != wire.expected_connections:
-                raise CheckError("missing WebSocket handshake")
-            await wire.closed.wait()
+            if stream is not None:
+                if stream.paths.count(stream.upgrade_path) != stream.expected_connections:
+                    raise CheckError("missing WebSocket handshake")
+                await stream.closed.wait()
     except TimeoutError:
-        raise CheckError(f"{label}: {wire.failure or 'scenario timed out'}") from None
+        raise CheckError(f"{scenario}: {label}: {wire_failure() or 'scenario timed out'}") from None
     except CheckError as error:
-        raise CheckError(f"{label}: {wire.failure or error}") from None
+        raise CheckError(f"{scenario}: {label}: {wire_failure() or error}") from None
     finally:
-        server.active = None
-    if wire.failure:
-        raise CheckError(f"{label}: {wire.failure}")
-    return {**result, "paths": wire.paths, "subscriptions": wire.subscriptions}
-
-
-async def observe_lost_ack(
-    server: LostAckServer,
-    label: str,
-    driver: Callable[[], Awaitable[dict[str, object]]],
-) -> dict[str, object]:
-    wire = LostAckWire()
-    label = f"{Scenario.LOST_ACK}: {label}"
-    server.active = wire
-    try:
-        async with asyncio.timeout(PEER_TIMEOUT):
-            result = await driver()
-    except TimeoutError:
-        raise CheckError(f"{label}: {wire.failure or 'scenario timed out'}") from None
-    except CheckError as error:
-        raise CheckError(f"{label}: {wire.failure or error}") from None
-    finally:
-        server.active = None
-    if wire.failure:
-        raise CheckError(f"{label}: {wire.failure}")
-    return {**result, "paths": wire.paths, "post_count": wire.post_count, "receipt": wire.receipt}
+        if server is not None:
+            server.active = None
+        if https is not None:
+            https.active = None
+    if failure := wire_failure():
+        raise CheckError(f"{scenario}: {label}: {failure}")
+    if write is not None:
+        result = {
+            **result,
+            "paths": write.paths,
+            "post_count": write.post_count,
+            "receipt": write.receipt,
+        }
+    if stream is not None:
+        paths_key = "paths" if write is None else "stream_paths"
+        result = {**result, paths_key: stream.paths, "subscriptions": stream.subscriptions}
+    return result
 
 
 async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
@@ -672,33 +743,43 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
         port = next(iter(server.sockets)).getsockname()[1]
         script.origin = f"https://{LOOPBACK}:{port}"
         report: dict[str, object] = {}
-        for scenario in Scenario:
-            if scenario is Scenario.LOST_ACK:
-                continue
-            python = await observe(
-                script, scenario, "Python", partial(run_python, script.origin, client_tls, scenario)
-            )
-            go = await observe(
-                script,
-                scenario,
-                "Go",
-                partial(run_go, binary, script.origin, certificate, scenario),
-            )
-            compare_transcripts(scenario, python, go)
-            report[scenario] = python
-        scenario = Scenario.LOST_ACK
         with LostAckServer(server_tls) as https:
             thread = threading.Thread(target=https.run, daemon=True)
             thread.start()
             try:
-                python = await observe_lost_ack(
-                    https, "Python", partial(run_python, https.origin, client_tls, scenario)
-                )
-                go = await observe_lost_ack(
-                    https, "Go", partial(run_go, binary, https.origin, certificate, scenario)
-                )
-                compare_transcripts(scenario, python, go)
-                report[scenario] = python
+                for scenario in Scenario:
+                    writes = scenario in (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY)
+                    stream = None if scenario is Scenario.LOST_ACK else script
+                    write = https if writes else None
+                    origin = https.origin if writes else script.origin
+                    stream_origin = (
+                        script.origin if scenario is Scenario.LOST_ACK_RECOVERY else None
+                    )
+                    python = await observe(
+                        stream,
+                        scenario,
+                        "Python",
+                        partial(
+                            run_python, origin, client_tls, scenario, stream_origin=stream_origin
+                        ),
+                        https=write,
+                    )
+                    go = await observe(
+                        stream,
+                        scenario,
+                        "Go",
+                        partial(
+                            run_go,
+                            binary,
+                            origin,
+                            certificate,
+                            scenario,
+                            stream_origin=stream_origin,
+                        ),
+                        https=write,
+                    )
+                    compare_transcripts(scenario, python, go)
+                    report[scenario] = python
             finally:
                 https.stop()
                 thread.join(IO_TIMEOUT)

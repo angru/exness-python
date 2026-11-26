@@ -75,6 +75,22 @@ def test_lost_ack_requires_single_verified_receipt(field: str, value: object) ->
         compare_transcripts(Scenario.LOST_ACK, wrong, wrong)
 
 
+@pytest.mark.parametrize("failure", ["foreign_selected", "snapshot_selected", "missing_match"])
+def test_lost_ack_recovery_requires_a_matching_event_before_selection(failure: str) -> None:
+    scenario = Scenario.LOST_ACK_RECOVERY
+    wrong = copy.deepcopy(EXPECTED[scenario])
+    events = cast(list[dict[str, object]], wrong["events"])
+    if failure == "foreign_selected":
+        events[1]["decision"] = "selected"
+        events[1]["selected"] = {"operation_id": "790", "status": "success"}
+    elif failure == "snapshot_selected":
+        events[0]["selected"] = events[-1]["selected"]
+    else:
+        events.pop()
+    with pytest.raises(ValueError, match=f"{scenario}: Python transcript mismatch: events"):
+        compare_transcripts(scenario, wrong, wrong)
+
+
 def test_request_signature_is_bound_to_received_target() -> None:
     vector = json.loads((Path(__file__).parent / "fixtures/signing-vector.json").read_text())
     key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(vector["private_key_hex"])[:32])

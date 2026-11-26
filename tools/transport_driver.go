@@ -45,7 +45,12 @@ type writeOutcome struct {
 	IdempotencyKey string `json:"idempotency_key"`
 }
 
-func run(origin, certPath, vectorPath, scenario string) error {
+const writeKey = "transport-lost-ack-0001"
+
+func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
+	if scenario == "lost_ack_recovery" && streamOrigin == "" {
+		return errors.New("missing recovery stream fixture origin")
+	}
 	cert, err := os.ReadFile(certPath)
 	if err != nil {
 		return errors.New("read loopback certificate")
@@ -70,13 +75,14 @@ func run(origin, certPath, vectorPath, scenario string) error {
 		TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
 	}
 	defer transport.CloseIdleConnections()
-	client, err := exness.NewClient(exness.Config{
+	config := exness.Config{
 		Credentials:  credentials,
 		AccountID:    "123456",
 		DiscoveryURL: origin,
 		Timeout:      3 * time.Second,
 		Transport:    transport,
-	})
+	}
+	client, err := exness.NewClient(config)
 	if err != nil {
 		return errors.New("initialize SDK client")
 	}
@@ -92,37 +98,99 @@ func run(origin, certPath, vectorPath, scenario string) error {
 	case "trading_missing_snapshot":
 		// A protocol error must stop recovery while a second retry is available.
 		return runTrading(ctx, client, 2)
-	case "lost_ack":
-		return runLostAck(ctx, client)
+	case "lost_ack", "lost_ack_recovery":
+		unknown, err := submitLostAck(ctx, client)
+		if err != nil {
+			return err
+		}
+		report := map[string]any{"outcome": writeOutcome{
+			Error:          "UnknownOutcomeError",
+			Method:         unknown.Method,
+			Path:           unknown.Path,
+			AccountID:      unknown.AccountID,
+			IdempotencyKey: unknown.IdempotencyKey,
+		}}
+		if scenario == "lost_ack_recovery" {
+			reference := exness.OperationReference{ClientRequestID: unknown.IdempotencyKey}
+			config.DiscoveryURL = streamOrigin
+			streamClient, err := exness.NewClient(config)
+			if err != nil {
+				return errors.New("initialize recovery stream client")
+			}
+			defer streamClient.Close()
+			events, err := runLostAckRecovery(ctx, streamClient, reference)
+			if err != nil {
+				return err
+			}
+			report["events"] = events
+		}
+		return json.NewEncoder(os.Stdout).Encode(report)
 	default:
 		return errors.New("unknown scenario")
 	}
 }
 
-func runLostAck(ctx context.Context, client *exness.Client) error {
+func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownOutcomeError, error) {
 	volume, err := exness.NewDecimal("0.01")
 	if err != nil {
-		return errors.New("initialize synthetic volume")
+		return nil, errors.New("initialize synthetic volume")
 	}
 	request := exness.OpenPositionRequest{
 		Instrument: "EURUSD",
 		Side:       exness.TradeBuy,
 		Volume:     volume,
 	}
-	ack, err := client.OpenPosition(ctx, request, "transport-lost-ack-0001")
+	ack, err := client.OpenPosition(ctx, request, writeKey)
 	var unknown *exness.UnknownOutcomeError
 	if ack != nil || !errors.As(err, &unknown) {
-		return errors.New("expected UnknownOutcomeError after losing the acknowledgement")
+		return nil, errors.New("expected UnknownOutcomeError after losing the acknowledgement")
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]writeOutcome{
-		"outcome": {
-			Error:          "UnknownOutcomeError",
-			Method:         unknown.Method,
-			Path:           unknown.Path,
-			AccountID:      unknown.AccountID,
-			IdempotencyKey: unknown.IdempotencyKey,
-		},
-	})
+	if unknown.IdempotencyKey != writeKey {
+		return nil, errors.New("lost acknowledgement did not preserve the caller key")
+	}
+	return unknown, nil
+}
+
+func runLostAckRecovery(ctx context.Context, client *exness.Client, reference exness.OperationReference) ([]map[string]any, error) {
+	options := exness.StreamOptions{OpenTimeout: 3 * time.Second}
+	var events []map[string]any
+	var selected map[string]any
+	for event, err := range client.StreamTrading(ctx, options) {
+		if err != nil {
+			return nil, errors.New("unexpected recovery stream error")
+		}
+		observation := tradingObservation(event)
+		if observation == nil {
+			return nil, errors.New("unexpected trading stream event")
+		}
+		if transaction := event.Transaction; transaction != nil {
+			matches, err := reference.MatchesEvent(*transaction)
+			if err != nil {
+				return nil, errors.New("correlate recovery transaction")
+			}
+			switch {
+			case !matches:
+				observation["decision"] = "ignored"
+			case transaction.Status == nil:
+				observation["decision"] = "matched_without_status"
+			default:
+				if selected != nil {
+					return nil, errors.New("extra matching terminal transaction")
+				}
+				selected = map[string]any{"operation_id": transaction.OperationID, "status": transaction.Status}
+				observation["decision"] = "selected"
+			}
+		}
+		observation["selected"] = selected
+		events = append(events, observation)
+	}
+	if ctx.Err() != nil {
+		return nil, errors.New("recovery stream timed out")
+	}
+	if selected == nil {
+		return nil, errors.New("expected a matching terminal transaction")
+	}
+	return events, nil
 }
 
 func runTicks(ctx context.Context, client *exness.Client) error {
@@ -224,11 +292,15 @@ func tradingObservation(event exness.TradingStreamEvent) map[string]any {
 }
 
 func main() {
-	if len(os.Args) != 5 {
-		fmt.Fprintln(os.Stderr, "usage: transport-driver ORIGIN CERTIFICATE SIGNING_VECTOR SCENARIO")
+	if len(os.Args) != 5 && len(os.Args) != 6 {
+		fmt.Fprintln(os.Stderr, "usage: transport-driver ORIGIN CERTIFICATE SIGNING_VECTOR SCENARIO [STREAM_ORIGIN]")
 		os.Exit(2)
 	}
-	if err := run(os.Args[1], os.Args[2], os.Args[3], os.Args[4]); err != nil {
+	var streamOrigin string
+	if len(os.Args) == 6 {
+		streamOrigin = os.Args[5]
+	}
+	if err := run(os.Args[1], os.Args[2], os.Args[3], os.Args[4], streamOrigin); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

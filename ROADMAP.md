@@ -170,3 +170,4 @@ Worker Board completed implementation, verification and independent review for e
   and [issue #14](https://github.com/angru/exness-python/issues/14).
 - [ ] [Compare transaction-stream recovery and missing-snapshot rejection](https://github.com/angru/exness-python/issues/16).
 - [ ] [Compare write receipt and unknown-outcome identity after a lost acknowledgement](https://github.com/angru/exness-python/issues/18).
+- [ ] [Verify lost-ACK recovery by matching a transaction without replaying the write](https://github.com/angru/exness-python/issues/20).

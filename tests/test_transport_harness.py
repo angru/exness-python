@@ -20,7 +20,9 @@ from websockets.frames import Close
 from websockets.http11 import Request
 from websockets.server import ServerProtocol
 
-from exness import AsyncExnessClient, Credentials
+from exness import AsyncExnessClient, Credentials, UnknownOutcomeError
+from exness.models import AckResponse
+from exness.requests import OpenPositionRequest
 from tools import check_transport as transport
 from tools.transport_transcript import (
     ACCOUNT,
@@ -34,7 +36,8 @@ from tools.transport_transcript import (
     compare_transcripts,
 )
 
-STREAM_SCENARIOS = [scenario for scenario in Scenario if scenario is not Scenario.LOST_ACK]
+WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY)
+STREAM_SCENARIOS = [scenario for scenario in Scenario if scenario not in WRITE_SCENARIOS]
 
 
 @pytest.mark.anyio
@@ -42,30 +45,38 @@ async def test_each_tls_listener_serves_separate_python_runs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     run_python = transport.run_python
-    runs: list[tuple[str, Scenario]] = []
+    runs: list[tuple[str, Scenario, str | None]] = []
 
     async def python_peer(
-        origin: str, tls: ssl.SSLContext, scenario: Scenario
+        origin: str, tls: ssl.SSLContext, scenario: Scenario, *, stream_origin: str | None = None
     ) -> dict[str, object]:
-        runs.append((origin, scenario))
-        return await run_python(origin, tls, scenario)
+        runs.append((origin, scenario, stream_origin))
+        return await run_python(origin, tls, scenario, stream_origin=stream_origin)
 
     async def second_peer(
-        binary: Path, origin: str, certificate: Path, scenario: Scenario
+        binary: Path,
+        origin: str,
+        certificate: Path,
+        scenario: Scenario,
+        *,
+        stream_origin: str | None = None,
     ) -> dict[str, object]:
         assert binary == tmp_path / "driver"
         tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         tls.load_verify_locations(cafile=certificate)
-        return await python_peer(origin, tls, scenario)
+        return await python_peer(origin, tls, scenario, stream_origin=stream_origin)
 
     monkeypatch.setattr(transport, "run_python", python_peer)
     monkeypatch.setattr(transport, "run_go", second_peer)
     assert await transport.compare_clients(tmp_path / "driver", tmp_path) == EXPECTED
-    stream_origins = {origin for origin, scenario in runs if scenario in STREAM_SCENARIOS}
-    write_origins = {origin for origin, scenario in runs if scenario is Scenario.LOST_ACK}
+    stream_origins = {origin for origin, scenario, _ in runs if scenario in STREAM_SCENARIOS}
+    write_origins = {origin for origin, scenario, _ in runs if scenario in WRITE_SCENARIOS}
     assert len(stream_origins) == len(write_origins) == 1
     assert stream_origins.isdisjoint(write_origins)
-    assert [scenario for _, scenario in runs] == [
+    assert {stream for _, scenario, stream in runs if scenario is Scenario.LOST_ACK_RECOVERY} == (
+        stream_origins
+    )
+    assert [scenario for _, scenario, _ in runs] == [
         scenario for scenario in Scenario for _ in range(2)
     ]
 
@@ -94,16 +105,57 @@ class MemorySocket:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("scenario", STREAM_SCENARIOS)
+@pytest.mark.parametrize(
+    ("scenario", "failure"),
+    [
+        *((scenario, None) for scenario in STREAM_SCENARIOS),
+        (Scenario.LOST_ACK_RECOVERY, None),
+        (Scenario.LOST_ACK_RECOVERY, "expected a matching terminal transaction"),
+        (Scenario.LOST_ACK_RECOVERY, "lost acknowledgement did not preserve the caller key"),
+    ],
+)
 async def test_python_scenarios_without_sockets(
-    monkeypatch: pytest.MonkeyPatch, scenario: Scenario
+    monkeypatch: pytest.MonkeyPatch, scenario: Scenario, failure: str | None
 ) -> None:
     script = transport.FixtureServer()
     script.origin = "https://127.0.0.1"
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ws = Mock(respond=ServerProtocol().reject)
+    https = Mock(spec=transport.LostAckServer, origin="https://127.0.0.1:4443", active=None)
+    recovers_write = scenario is Scenario.LOST_ACK_RECOVERY
+    if failure == "expected a matching terminal transaction":
+        script.matching_transaction = script.foreign_transaction
+    if failure == "lost acknowledgement did not preserve the caller key":
+        open_position = AsyncExnessClient.open_position
+
+        async def lose_key(
+            client: AsyncExnessClient, request: OpenPositionRequest, *, idempotency_key: str
+        ) -> AckResponse:
+            try:
+                return await open_position(client, request, idempotency_key=idempotency_key)
+            except UnknownOutcomeError as error:
+                error.idempotency_key = ""
+                raise
+
+        monkeypatch.setattr(AsyncExnessClient, "open_position", lose_key)
+
+    observed_write: transport.LostAckWire | None = None
 
     def dispatch(request: httpx.Request) -> httpx.Response:
+        nonlocal observed_write
+        if request.url.port == 4443:
+            assert recovers_write
+            observed_write = https.active
+            response_bytes = exchange_http(https, request)
+            if request.method == "POST":
+                assert response_bytes == b""
+                raise httpx.RemoteProtocolError("synthetic lost acknowledgement")
+            assert response_bytes.startswith(b"HTTP/1.1 200 ")
+            return httpx.Response(200, content=response_bytes.split(b"\r\n\r\n", 1)[1])
+        if recovers_write:
+            assert observed_write is not None and observed_write.post_count == 1
+            assert observed_write.receipt == EXPECTED[Scenario.LOST_ACK]["receipt"]
+            assert failure != "lost acknowledgement did not preserve the caller key"
         response = script.process_request(
             ws,
             Request(request.url.raw_path.decode("ascii"), Headers(request.headers.multi_items())),
@@ -131,10 +183,25 @@ async def test_python_scenarios_without_sockets(
         monkeypatch.setattr("exness.ticks._NoRedirectConnect", connect)
 
         async def driver() -> dict[str, object]:
+            if recovers_write:
+                return await transport.run_python(
+                    https.origin, tls, scenario, stream_origin=script.origin
+                )
             return await transport.run_python(script.origin, tls, scenario)
 
-        result = await transport.observe(script, scenario, "Python", driver)
-    assert result == EXPECTED[scenario]
+        async def observe() -> dict[str, object]:
+            return await transport.observe(
+                script, scenario, "Python", driver, https=https if recovers_write else None
+            )
+
+        if failure is None:
+            compare_transcripts(scenario, await observe(), EXPECTED[scenario])
+        else:
+            with pytest.raises(transport.CheckError, match=f"{scenario}: Python: {failure}"):
+                await observe()
+    if recovers_write:
+        assert observed_write is not None and observed_write.post_count == 1
+    assert script.active is None and https.active is None
 
 
 def exchange_http(server: transport.LostAckServer, request: httpx.Request) -> bytes:
@@ -196,11 +263,11 @@ async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
         return await transport.run_python(server.origin, tls, Scenario.LOST_ACK)
 
     if failure is None:
-        result = await transport.observe_lost_ack(server, "Python", driver)
+        result = await transport.observe(None, Scenario.LOST_ACK, "Python", driver, https=server)
         compare_transcripts(Scenario.LOST_ACK, result, EXPECTED[Scenario.LOST_ACK])
     else:
         with pytest.raises(transport.CheckError, match=f"lost_ack: Python: {failure}"):
-            await transport.observe_lost_ack(server, "Python", driver)
+            await transport.observe(None, Scenario.LOST_ACK, "Python", driver, https=server)
     assert server.active is None
     assert observation is not None and observation.post_count == posts
     if case in ("valid", "duplicate"):
@@ -211,7 +278,7 @@ async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
         assert observation.paths == [DISCOVERY_PATH]
 
 
-def test_replacement_snapshot_matches_pinned_schema() -> None:
+def test_derived_trading_frames_match_pinned_schema() -> None:
     contract_path = transport.ROOT / "contracts/trading.public.yaml"
     contract = yaml.safe_load(contract_path.read_text())
     resource = Resource.from_contents(contract, default_specification=DRAFT202012)
@@ -220,7 +287,13 @@ def test_replacement_snapshot_matches_pinned_schema() -> None:
         registry=Registry().with_resource("urn:exness:trading", resource),
         format_checker=FormatChecker(),
     )
-    validator.validate(json.loads(transport.FixtureServer().replacement_snapshot))
+    script = transport.FixtureServer()
+    for frame in (
+        script.replacement_snapshot,
+        script.foreign_transaction,
+        script.matching_transaction,
+    ):
+        validator.validate(json.loads(frame))
 
 
 @pytest.mark.anyio
@@ -241,6 +314,20 @@ async def test_transaction_subscription_id_must_change_on_reconnect() -> None:
     second.send.assert_not_awaited()
     assert wire.failure == "reused subscription ID"
     assert wire.closed.is_set()
+
+
+def test_recovery_discovery_requires_verified_post_receipt() -> None:
+    script = transport.FixtureServer()
+    write = transport.LostAckWire(post_count=1)
+    wire = transport.WireTranscript(Scenario.LOST_ACK_RECOVERY, write=write)
+    script.active = wire
+    ws = Mock(respond=ServerProtocol().reject)
+
+    response = script.process_request(ws, Request(DISCOVERY_PATH, Headers()))
+
+    assert response is not None and response.status_code == HTTPStatus.BAD_REQUEST
+    assert wire.paths == []
+    assert wire.failure == "recovery stream started before the verified POST receipt"
 
 
 @pytest.mark.anyio
@@ -331,8 +418,9 @@ async def test_observation_fails_if_websocket_sends_an_extra_subscription() -> N
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("scenario", [Scenario.REST_TICKS, Scenario.LOST_ACK_RECOVERY])
 async def test_consumer_timeout_kills_and_reaps_child(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: Scenario
 ) -> None:
     async def communicate() -> tuple[bytes, bytes]:
         return await asyncio.Future()
@@ -344,15 +432,23 @@ async def test_consumer_timeout_kills_and_reaps_child(
     monkeypatch.setattr(asyncio, "create_subprocess_exec", launch)
     monkeypatch.setattr(transport, "PEER_TIMEOUT", 0)
     script = transport.FixtureServer()
+    stream_origin = "https://127.0.0.1:4443" if scenario is Scenario.LOST_ACK_RECOVERY else None
 
     async def driver() -> dict[str, object]:
         return await transport.run_go(
-            tmp_path / "driver", script.origin, tmp_path / "cert.pem", Scenario.REST_TICKS
+            tmp_path / "driver",
+            script.origin,
+            tmp_path / "cert.pem",
+            scenario,
+            stream_origin=stream_origin,
         )
 
     with pytest.raises(transport.CheckError, match="Go: scenario timed out"):
-        await transport.observe(script, Scenario.REST_TICKS, "Go", driver)
+        await transport.observe(script, scenario, "Go", driver)
     assert launch.call_args.kwargs["env"] == {}
+    assert launch.call_args.args[4:] == (
+        (scenario,) if stream_origin is None else (scenario, stream_origin)
+    )
     process.kill.assert_called_once_with()
     process.wait.assert_awaited_once_with()
     assert script.active is None
