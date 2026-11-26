@@ -98,15 +98,15 @@ part of this plan.
 | 4 | Local lifecycle stress and benchmarks | Repeat reconnect, concurrent request and cancellation scenarios against local servers; verify owned resource cleanup; record reproducible parsing/signing measurements without flaky wall-time performance gates |
 | 5 | Installed-package consumer checks | Exercise current exports, request/response types and trading/wait entry points from an installed Python artifact and an independent Go module; update API review tables/counts; run without live credentials |
 
-- [ ] 1. Response validation audit and shared regression corpus.
-- [ ] 2. Decoder fuzzing and generated event sequences.
-- [ ] 3. Automated fixture and behavioral parity checks.
-- [ ] 4. Local lifecycle stress and reproducible benchmarks.
-- [ ] 5. Installed-package checks and current public API documentation.
+- [x] 1. [Response validation audit and shared regression corpus](https://github.com/angru/exness-python/issues/1).
+- [ ] 2. [Decoder fuzzing and generated event sequences](https://github.com/angru/exness-python/issues/2).
+- [ ] 3. [Automated fixture and behavioral parity checks](https://github.com/angru/exness-python/issues/3).
+- [ ] 4. [Local lifecycle stress and reproducible benchmarks](https://github.com/angru/exness-python/issues/4).
+- [ ] 5. [Installed-package checks and current public API documentation](https://github.com/angru/exness-python/issues/5).
 
-The first reproduced inconsistency is uint64 overflow: the Python ACK model rejects
-`18446744073709551616`, while the transaction event model accepts it. Review the
-same boundary in Go and all related response identifiers. Do not tighten unknown
+The first audit fixed uint64 overflow and related critical-field inconsistencies.
+See [RESPONSE_VALIDATION.md](RESPONSE_VALIDATION.md) for the implemented rules and
+the 170-case shared regression corpus. Do not tighten unknown
 fields or optional values merely to make the languages identical; changes require
 contract evidence and a regression case. Treat the pinned contract as the offline
 source of truth, recording ambiguities explicitly.
