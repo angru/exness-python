@@ -63,6 +63,32 @@ checkout/file drift, a bounded unified result diff, or a command failure. Indivi
 commands time out after five minutes. Temporary reports live outside the repos;
 Go report generation disables its test cache (`-count=1`).
 
+## Validate a proposed pair
+
+After preparing two trusted, clean local checkouts and installing dependencies, run
+this canonical command from a Python checkout containing the candidate tool:
+
+```sh
+UV_OFFLINE=1 GOPROXY=off GOTOOLCHAIN=local python3 -m tools.check_candidate_pair \
+  --python-root /path/to/exness-python --python-revision <full-python-sha> \
+  --go-root /path/to/exness-go --go-revision <full-go-sha>
+```
+
+Supply lowercase 40-character commit SHAs. Both checkouts must match and be clean,
+including untracked files, before and after parity; ignored dependency caches are
+allowed. `--uv` and `--go` select executable paths. The command runs the existing
+checker and synthetic scenarios without credentials or API requests. It does not
+fetch, switch revisions or edit pins. It executes code from both checkouts; review
+candidate code before running it. A successful JSON report gives both SHAs, match
+counts, and the exact proposed contents of each repository's
+`tools/parity-peer.json`. Failure produces no proposal.
+
+Review the comparison and both candidate changes. Once both candidate commits are
+reachable on GitHub, apply the proposed Go SHA to the Python pin and the proposed
+Python SHA to the Go pin in their respective repositories, review those edits and
+run both pinned CI jobs. The pin changes themselves need separate commits; the
+proposed SHAs identify the tested candidate commits, not those later pin commits.
+
 ## CI and updating a compatible pair
 
 Each repository has a separate `parity` CI job. It checks the current revision
