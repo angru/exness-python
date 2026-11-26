@@ -53,6 +53,46 @@ def test_missing_snapshot_rejects_extra_events_and_normal_close(field: str) -> N
         compare_transcripts(scenario, expected, wrong)
 
 
+@pytest.mark.parametrize("failure", ["update_first", "stale_snapshot", "absent_snapshot"])
+def test_hmr_recovery_requires_fresh_empty_snapshot_before_update(failure: str) -> None:
+    scenario = Scenario.HMR_RECOVERY
+    wrong = copy.deepcopy(EXPECTED[scenario])
+    events = cast(list[dict[str, object]], wrong["events"])
+    if failure == "update_first":
+        events[2], events[3] = events[3], events[2]
+    elif failure == "stale_snapshot":
+        events[2] = events[0]
+    else:
+        del events[2]
+    with pytest.raises(ValueError, match=f"{scenario}: Python transcript mismatch: events"):
+        compare_transcripts(scenario, wrong, wrong)
+
+
+@pytest.mark.parametrize("extra_event", ["gap", "update"])
+def test_hmr_missing_snapshot_rejects_extra_events(extra_event: str) -> None:
+    scenario = Scenario.HMR_MISSING_SNAPSHOT
+    expected = EXPECTED[scenario]
+    recovery = cast(list[dict[str, object]], EXPECTED[Scenario.HMR_RECOVERY]["events"])
+    extra = next(event for event in recovery if event["kind"] == extra_event)
+    wrong = {**expected, "events": [*cast(list[object], expected["events"]), extra]}
+    with pytest.raises(ValueError, match=f"{scenario}: Go transcript mismatch: events"):
+        compare_transcripts(scenario, expected, wrong)
+
+
+@pytest.mark.parametrize(
+    "subscription", [{"event": "hmr"}, {"event": "hmr", "instruments": ["all"]}]
+)
+def test_hmr_requires_explicit_instrument_on_both_connections(
+    subscription: dict[str, object],
+) -> None:
+    scenario = Scenario.HMR_RECOVERY
+    expected = EXPECTED[scenario]
+    first, _ = cast(list[object], expected["subscriptions"])
+    wrong = {**expected, "subscriptions": [first, subscription]}
+    with pytest.raises(ValueError, match=f"{scenario}: Go transcript mismatch: subscriptions"):
+        compare_transcripts(scenario, expected, wrong)
+
+
 @pytest.mark.parametrize("field", ["error", "account_id", "method", "path", "idempotency_key"])
 def test_lost_ack_rejects_wrong_identity_without_reporting_values(field: str) -> None:
     scenario = Scenario.LOST_ACK

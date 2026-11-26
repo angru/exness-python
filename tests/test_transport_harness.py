@@ -117,6 +117,7 @@ class MemorySocket:
     ("scenario", "failure"),
     [
         *((scenario, None) for scenario in STREAM_SCENARIOS),
+        (Scenario.HMR_MISSING_SNAPSHOT, "unexpected HMR protocol error"),
         (Scenario.LOST_ACK_RECOVERY, None),
         (Scenario.LOST_ACK_RECOVERY, "expected a matching terminal transaction"),
         (Scenario.LOST_ACK_RECOVERY, "lost acknowledgement did not preserve the caller key"),
@@ -131,6 +132,8 @@ async def test_python_scenarios_without_sockets(
     ws = Mock(respond=ServerProtocol().reject)
     https = Mock(spec=transport.WriteServer, origin="https://127.0.0.1:4443", active=None)
     recovers_write = scenario is Scenario.LOST_ACK_RECOVERY
+    if failure == "unexpected HMR protocol error":
+        script.hmr_update = "{"
     if failure == "expected a matching terminal transaction":
         script.matching_transaction = script.foreign_transaction
     if failure == "lost acknowledgement did not preserve the caller key":
@@ -409,12 +412,27 @@ def test_derived_trading_frames_match_pinned_schema() -> None:
         validator.validate(json.loads(frame))
 
 
-@pytest.mark.anyio
-async def test_transaction_subscription_id_must_change_on_reconnect() -> None:
+def test_hmr_frames_match_pinned_schema() -> None:
     script = transport.FixtureServer()
-    wire = transport.WireTranscript(Scenario.TRADING_RECOVERY)
+    snapshot = contract_validator("WSHmrSnapshotEvent")
+    snapshot.validate(json.loads(script.hmr_snapshot))
+    snapshot.validate(json.loads(script.hmr_empty_snapshot))
+    contract_validator("WSHmrUpdateEvent").validate(json.loads(script.hmr_update))
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("scenario", "fixture"),
+    [
+        (Scenario.TRADING_RECOVERY, "trading_subscription"),
+        (Scenario.HMR_RECOVERY, "hmr_subscription"),
+    ],
+)
+async def test_subscription_id_must_change_on_reconnect(scenario: Scenario, fixture: str) -> None:
+    script = transport.FixtureServer()
+    wire = transport.WireTranscript(scenario)
     script.active = wire
-    subscription = (transport.FIXTURES / "trading_subscription.json").read_text(encoding="utf-8")
+    subscription = (transport.FIXTURES / f"{fixture}.json").read_text(encoding="utf-8")
     first = AsyncMock()
     second = AsyncMock()
     first.recv.side_effect = [subscription, ConnectionClosedError(None, Close(1012, ""))]
@@ -444,7 +462,10 @@ def test_recovery_discovery_requires_verified_post_receipt() -> None:
 
 
 @pytest.mark.anyio
-async def test_third_trading_upgrade_is_rejected_even_if_driver_finishes() -> None:
+@pytest.mark.parametrize(
+    "scenario", [Scenario.TRADING_MISSING_SNAPSHOT, Scenario.HMR_MISSING_SNAPSHOT]
+)
+async def test_third_upgrade_is_rejected_even_if_driver_finishes(scenario: Scenario) -> None:
     script = transport.FixtureServer()
     ws = Mock(respond=ServerProtocol().reject)
 
@@ -458,7 +479,7 @@ async def test_third_trading_upgrade_is_rejected_even_if_driver_finishes() -> No
         return {}
 
     with pytest.raises(transport.CheckError, match="peer: unexpected extra request"):
-        await transport.observe(script, Scenario.TRADING_MISSING_SNAPSHOT, "peer", driver)
+        await transport.observe(script, scenario, "peer", driver)
     assert script.active is None
 
 
