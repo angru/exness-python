@@ -57,6 +57,8 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      - name: Check pinned public API compatibility
+        run: uv run python -m tools.check_public_api
       - run: uv run pytest
       - name: Verify installed wheel consumers and typing
         run: sh tools/check-installed.sh

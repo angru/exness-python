@@ -1,0 +1,3628 @@
+{
+  "declarations": {
+    "exness.APIError": {
+      "kind": "export",
+      "target": "exness.errors.APIError"
+    },
+    "exness.AsyncExnessClient": {
+      "kind": "export",
+      "target": "exness.async_client.AsyncExnessClient"
+    },
+    "exness.ConfigurationError": {
+      "kind": "export",
+      "target": "exness.errors.ConfigurationError"
+    },
+    "exness.Credentials": {
+      "kind": "export",
+      "target": "exness.auth.Credentials"
+    },
+    "exness.ExnessClient": {
+      "kind": "export",
+      "target": "exness.client.ExnessClient"
+    },
+    "exness.ExnessError": {
+      "kind": "export",
+      "target": "exness.errors.ExnessError"
+    },
+    "exness.OperationReference": {
+      "kind": "export",
+      "target": "exness.operations.OperationReference"
+    },
+    "exness.OperationWaitTimeout": {
+      "kind": "export",
+      "target": "exness.errors.OperationWaitTimeout"
+    },
+    "exness.ProtocolError": {
+      "kind": "export",
+      "target": "exness.errors.ProtocolError"
+    },
+    "exness.ServerStreamGap": {
+      "kind": "export",
+      "target": "exness.events.ServerStreamGap"
+    },
+    "exness.ServerStreamOptions": {
+      "kind": "export",
+      "target": "exness.events.ServerStreamOptions"
+    },
+    "exness.StreamClosed": {
+      "kind": "export",
+      "target": "exness.errors.StreamClosed"
+    },
+    "exness.StreamGap": {
+      "kind": "export",
+      "target": "exness.ticks.StreamGap"
+    },
+    "exness.StreamOptions": {
+      "kind": "export",
+      "target": "exness.ticks.StreamOptions"
+    },
+    "exness.TickStreamGap": {
+      "kind": "export",
+      "target": "exness.ticks.TickStreamGap"
+    },
+    "exness.TickStreamOptions": {
+      "kind": "export",
+      "target": "exness.ticks.TickStreamOptions"
+    },
+    "exness.TradingStreamGap": {
+      "kind": "export",
+      "target": "exness.trading.TradingStreamGap"
+    },
+    "exness.TradingStreamOptions": {
+      "kind": "export",
+      "target": "exness.trading.TradingStreamOptions"
+    },
+    "exness.TransportError": {
+      "kind": "export",
+      "target": "exness.errors.TransportError"
+    },
+    "exness.UnknownOutcomeError": {
+      "kind": "export",
+      "target": "exness.errors.UnknownOutcomeError"
+    },
+    "exness.WebSocketAPIError": {
+      "kind": "export",
+      "target": "exness.errors.WebSocketAPIError"
+    },
+    "exness.__all__": {
+      "kind": "alias",
+      "value": "['APIError', 'AsyncExnessClient', 'ConfigurationError', 'Credentials', 'ExnessClient', 'ExnessError', 'OperationReference', 'OperationWaitTimeout', 'ProtocolError', 'ServerStreamGap', 'ServerStreamOptions', 'StreamClosed', 'StreamGap', 'StreamOptions', 'TickStreamGap', 'TickStreamOptions', 'TradingStreamGap', 'TradingStreamOptions', 'TransportError', 'UnknownOutcomeError', 'WebSocketAPIError']"
+    },
+    "exness.async_client.AsyncExnessClient": {
+      "bases": [],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.async_client.AsyncExnessClient.__aenter__": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Self"
+    },
+    "exness.async_client.AsyncExnessClient.__aexit__": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "exc_type",
+          "type": "type[BaseException] | None"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "exc_value",
+          "type": "BaseException | None"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "traceback",
+          "type": "TracebackType | None"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.async_client.AsyncExnessClient.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "credentials",
+          "type": "Credentials"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "account_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "discovery_url",
+          "type": "str"
+        },
+        {
+          "default": "15.0",
+          "kind": "keyword",
+          "name": "timeout",
+          "type": "float"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "transport",
+          "type": "httpx.AsyncBaseTransport | None"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.async_client.AsyncExnessClient.aclose": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "None"
+    },
+    "exness.async_client.AsyncExnessClient.cancel_pending_order": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "order_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.async_client.AsyncExnessClient.close_position": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "position_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "ClosePositionRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.async_client.AsyncExnessClient.discover": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "False",
+          "kind": "keyword",
+          "name": "refresh",
+          "type": "bool"
+        }
+      ],
+      "return": "str"
+    },
+    "exness.async_client.AsyncExnessClient.get_account": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "AccountDetails"
+    },
+    "exness.async_client.AsyncExnessClient.get_candle_history": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "timeframe",
+          "type": "CandleTimeframe"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "count",
+          "type": "int | None"
+        },
+        {
+          "default": "'bid'",
+          "kind": "keyword",
+          "name": "price_type",
+          "type": "CandlePriceType"
+        }
+      ],
+      "return": "CandleHistory"
+    },
+    "exness.async_client.AsyncExnessClient.get_deals_history": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "cursor",
+          "type": "str | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "deal_type",
+          "type": "DealType | None"
+        }
+      ],
+      "return": "HistoryPage[DealHistoryItem]"
+    },
+    "exness.async_client.AsyncExnessClient.get_instrument_conditions": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instrument",
+          "type": "str"
+        }
+      ],
+      "return": "InstrumentConditions"
+    },
+    "exness.async_client.AsyncExnessClient.get_instruments": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Instruments"
+    },
+    "exness.async_client.AsyncExnessClient.get_limits": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Limits"
+    },
+    "exness.async_client.AsyncExnessClient.get_operation_status": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "operation_id",
+          "type": "str"
+        }
+      ],
+      "return": "OperationStatus"
+    },
+    "exness.async_client.AsyncExnessClient.get_orders_history": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "cursor",
+          "type": "str | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "order_state",
+          "type": "ClosedOrderState | None"
+        }
+      ],
+      "return": "HistoryPage[OrderHistoryItem]"
+    },
+    "exness.async_client.AsyncExnessClient.get_snapshot": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "TradingSnapshot"
+    },
+    "exness.async_client.AsyncExnessClient.iter_deals_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "deal_type",
+          "type": "DealType | None"
+        }
+      ],
+      "return": "AsyncGenerator[DealHistoryItem, None]"
+    },
+    "exness.async_client.AsyncExnessClient.iter_orders_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "order_state",
+          "type": "ClosedOrderState | None"
+        }
+      ],
+      "return": "AsyncGenerator[OrderHistoryItem, None]"
+    },
+    "exness.async_client.AsyncExnessClient.modify_order": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "order_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "ModifyOrderRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.async_client.AsyncExnessClient.open_position": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "OpenPositionRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.async_client.AsyncExnessClient.place_pending_order": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "PendingOrderRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.async_client.AsyncExnessClient.stream_account_state": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "options",
+          "type": "ServerStreamOptions | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[AccountStateEvent | ServerStreamGap, None]"
+    },
+    "exness.async_client.AsyncExnessClient.stream_hmr": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instruments",
+          "type": "Sequence[str]"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "options",
+          "type": "ServerStreamOptions | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[HmrEvent | ServerStreamGap, None]"
+    },
+    "exness.async_client.AsyncExnessClient.stream_instruments": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instruments",
+          "type": "Sequence[str]"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "options",
+          "type": "ServerStreamOptions | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[InstrumentEvent | ServerStreamGap, None]"
+    },
+    "exness.async_client.AsyncExnessClient.stream_ticks": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instruments",
+          "type": "Sequence[str]"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "options",
+          "type": "TickStreamOptions | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[Tick | TickStreamGap, None]"
+    },
+    "exness.async_client.AsyncExnessClient.stream_trading": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "options",
+          "type": "TradingStreamOptions | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[TradingEvent | TradingStreamGap, None]"
+    },
+    "exness.async_client.AsyncExnessClient.wait_operation": {
+      "decorators": [],
+      "kind": "async",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "reference",
+          "type": "OperationReference"
+        },
+        {
+          "default": "30.0",
+          "kind": "keyword",
+          "name": "timeout",
+          "type": "float"
+        },
+        {
+          "default": "1.0",
+          "kind": "keyword",
+          "name": "poll_interval",
+          "type": "float"
+        }
+      ],
+      "return": "OperationStatus"
+    },
+    "exness.async_client.ItemT": {
+      "kind": "alias",
+      "value": "TypeVar('ItemT')"
+    },
+    "exness.async_client.ModelT": {
+      "kind": "alias",
+      "value": "TypeVar('ModelT', bound=APIModel)"
+    },
+    "exness.async_client.ResultT": {
+      "kind": "alias",
+      "value": "TypeVar('ResultT')"
+    },
+    "exness.auth.Credentials": {
+      "bases": [],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.auth.Credentials.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "api_key",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "private_key",
+          "type": "str"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.client.ExnessClient": {
+      "bases": [],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.client.ExnessClient.__enter__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Self"
+    },
+    "exness.client.ExnessClient.__exit__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "exc_type",
+          "type": "type[BaseException] | None"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "exc_value",
+          "type": "BaseException | None"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "traceback",
+          "type": "TracebackType | None"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.client.ExnessClient.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "credentials",
+          "type": "Credentials"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "account_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "discovery_url",
+          "type": "str"
+        },
+        {
+          "default": "15.0",
+          "kind": "keyword",
+          "name": "timeout",
+          "type": "float"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "transport",
+          "type": "httpx.BaseTransport | None"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.client.ExnessClient.cancel_pending_order": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "order_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.client.ExnessClient.close": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "None"
+    },
+    "exness.client.ExnessClient.close_position": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "position_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "ClosePositionRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.client.ExnessClient.discover": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "False",
+          "kind": "keyword",
+          "name": "refresh",
+          "type": "bool"
+        }
+      ],
+      "return": "str"
+    },
+    "exness.client.ExnessClient.get_account": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "AccountDetails"
+    },
+    "exness.client.ExnessClient.get_candle_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "timeframe",
+          "type": "CandleTimeframe"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "count",
+          "type": "int | None"
+        },
+        {
+          "default": "'bid'",
+          "kind": "keyword",
+          "name": "price_type",
+          "type": "CandlePriceType"
+        }
+      ],
+      "return": "CandleHistory"
+    },
+    "exness.client.ExnessClient.get_deals_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "cursor",
+          "type": "str | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "deal_type",
+          "type": "DealType | None"
+        }
+      ],
+      "return": "HistoryPage[DealHistoryItem]"
+    },
+    "exness.client.ExnessClient.get_instrument_conditions": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instrument",
+          "type": "str"
+        }
+      ],
+      "return": "InstrumentConditions"
+    },
+    "exness.client.ExnessClient.get_instruments": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Instruments"
+    },
+    "exness.client.ExnessClient.get_limits": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "Limits"
+    },
+    "exness.client.ExnessClient.get_operation_status": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "operation_id",
+          "type": "str"
+        }
+      ],
+      "return": "OperationStatus"
+    },
+    "exness.client.ExnessClient.get_orders_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "cursor",
+          "type": "str | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "order_state",
+          "type": "ClosedOrderState | None"
+        }
+      ],
+      "return": "HistoryPage[OrderHistoryItem]"
+    },
+    "exness.client.ExnessClient.get_snapshot": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "TradingSnapshot"
+    },
+    "exness.client.ExnessClient.iter_deals_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "deal_type",
+          "type": "DealType | None"
+        }
+      ],
+      "return": "Iterator[DealHistoryItem]"
+    },
+    "exness.client.ExnessClient.iter_orders_history": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "from_time",
+          "type": "datetime"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "to_time",
+          "type": "datetime | None"
+        },
+        {
+          "default": "100",
+          "kind": "keyword",
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "instrument",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "order_state",
+          "type": "ClosedOrderState | None"
+        }
+      ],
+      "return": "Iterator[OrderHistoryItem]"
+    },
+    "exness.client.ExnessClient.modify_order": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "order_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "ModifyOrderRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.client.ExnessClient.open_position": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "OpenPositionRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.client.ExnessClient.place_pending_order": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request",
+          "type": "PendingOrderRequest"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        }
+      ],
+      "return": "AckResponse"
+    },
+    "exness.client.ExnessClient.wait_operation": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "reference",
+          "type": "OperationReference"
+        },
+        {
+          "default": "30.0",
+          "kind": "keyword",
+          "name": "timeout",
+          "type": "float"
+        },
+        {
+          "default": "1.0",
+          "kind": "keyword",
+          "name": "poll_interval",
+          "type": "float"
+        }
+      ],
+      "return": "OperationStatus"
+    },
+    "exness.client.ItemT": {
+      "kind": "alias",
+      "value": "TypeVar('ItemT')"
+    },
+    "exness.client.ModelT": {
+      "kind": "alias",
+      "value": "TypeVar('ModelT', bound=APIModel)"
+    },
+    "exness.errors.APIError": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.APIError.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "status_code",
+          "type": "int"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "code",
+          "type": "int | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "error_message",
+          "type": "str | None"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "retry_after",
+          "type": "str | None"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.errors.ConfigurationError": {
+      "bases": [
+        "ExnessError",
+        "ValueError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.ExnessError": {
+      "bases": [
+        "Exception"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.OperationWaitTimeout": {
+      "bases": [
+        "ExnessError",
+        "TimeoutError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.OperationWaitTimeout.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "reference",
+          "type": "OperationReference"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "last_status",
+          "type": "OperationStatus | None"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "attempts",
+          "type": "int"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.errors.ProtocolError": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.StreamClosed": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.StreamClosed.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "code",
+          "type": "int"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.errors.TransportError": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.UnknownOutcomeError": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.UnknownOutcomeError.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "method",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "path",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "account_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "idempotency_key",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "keyword",
+          "name": "cause",
+          "type": "ExnessError"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.errors.WebSocketAPIError": {
+      "bases": [
+        "ExnessError"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.errors.WebSocketAPIError.__init__": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "request_id",
+          "type": "str"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "code",
+          "type": "int"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "error_message",
+          "type": "str"
+        }
+      ],
+      "return": "None"
+    },
+    "exness.events.AccountStateEvent": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.AccountStateEvent.event_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.events.AccountStateEvent.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['account_state_event']"
+    },
+    "exness.events.AccountStateEvent.payload": {
+      "default": null,
+      "kind": "field",
+      "type": "AccountStatePayload"
+    },
+    "exness.events.AccountStatePayload": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.AccountStatePayload.account_state": {
+      "default": null,
+      "kind": "field",
+      "type": "AccountState"
+    },
+    "exness.events.EventT": {
+      "kind": "alias",
+      "value": "TypeVar('EventT')"
+    },
+    "exness.events.HmrEvent": {
+      "kind": "alias",
+      "value": "HmrSnapshot | HmrUpdate"
+    },
+    "exness.events.HmrPeriod": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.HmrPeriod.end_time": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.events.HmrPeriod.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['regular', 'periodic']"
+    },
+    "exness.events.HmrPeriod.instruments": {
+      "default": "Field(min_length=1)",
+      "kind": "field",
+      "type": "list[Instrument]"
+    },
+    "exness.events.HmrPeriod.leverage": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.events.HmrPeriod.period_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.events.HmrPeriod.start_time": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.events.HmrSnapshot": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.HmrSnapshot.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['hmr_snapshot']"
+    },
+    "exness.events.HmrSnapshot.periods": {
+      "default": null,
+      "kind": "field",
+      "type": "list[HmrPeriod]"
+    },
+    "exness.events.HmrUpdate": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.HmrUpdate.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['hmr_update']"
+    },
+    "exness.events.HmrUpdate.removed_period_ids": {
+      "default": null,
+      "kind": "field",
+      "type": "list[Identifier]"
+    },
+    "exness.events.HmrUpdate.upserted_periods": {
+      "default": null,
+      "kind": "field",
+      "type": "list[HmrPeriod]"
+    },
+    "exness.events.InstrumentEvent": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.events.InstrumentEvent.action": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['new', 'upd', 'del']"
+    },
+    "exness.events.InstrumentEvent.event_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.events.InstrumentEvent.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['instrument_event']"
+    },
+    "exness.events.InstrumentEvent.payload": {
+      "default": null,
+      "kind": "field",
+      "type": "InstrumentConditions"
+    },
+    "exness.events.ServerStreamGap": {
+      "kind": "alias",
+      "value": "TickStreamGap"
+    },
+    "exness.events.ServerStreamOptions": {
+      "kind": "alias",
+      "value": "TickStreamOptions"
+    },
+    "exness.models.APIModel": {
+      "bases": [
+        "BaseModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AccessPoint": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AccessPoint.access_point": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.AccessPoint.account_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.models.AccountDetails": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AccountDetails.account_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.models.AccountDetails.account_name": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.AccountDetails.create_date": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.AccountDetails.settings": {
+      "default": "None",
+      "kind": "field",
+      "type": "AccountSettings | None"
+    },
+    "exness.models.AccountSettings": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AccountSettings.account_status": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['active', 'close_only']"
+    },
+    "exness.models.AccountSettings.currency": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.AccountSettings.execution_mode": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['undefined', 'instant', 'market']"
+    },
+    "exness.models.AccountSettings.leverage": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.AccountSettings.margin_call_level": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.AccountSettings.stopout_level": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.AccountSettings.trade_mode": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['enabled', 'trading_disabled']"
+    },
+    "exness.models.AccountState": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AccountState.balance": {
+      "default": null,
+      "kind": "field",
+      "type": "DecimalValue"
+    },
+    "exness.models.AccountState.equity": {
+      "default": null,
+      "kind": "field",
+      "type": "DecimalValue"
+    },
+    "exness.models.AccountState.used_margin": {
+      "default": null,
+      "kind": "field",
+      "type": "DecimalValue"
+    },
+    "exness.models.AckResponse": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.AckResponse.client_request_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.AckResponse.operation_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.models.AckResponse.status": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['accepted']"
+    },
+    "exness.models.ApiLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.ApiLimits.rest": {
+      "default": null,
+      "kind": "field",
+      "type": "RestLimits"
+    },
+    "exness.models.ApiLimits.websocket": {
+      "default": null,
+      "kind": "field",
+      "type": "WebSocketLimits"
+    },
+    "exness.models.Candle": {
+      "bases": [
+        "CandleSide"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Candle.ask": {
+      "default": "None",
+      "kind": "field",
+      "type": "CandleSide | None"
+    },
+    "exness.models.Candle.bid": {
+      "default": "None",
+      "kind": "field",
+      "type": "CandleSide | None"
+    },
+    "exness.models.Candle.time": {
+      "default": "None",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.Candle.volume": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.CandleHistory": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.CandleHistory.candles": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Candle]"
+    },
+    "exness.models.CandlePriceType": {
+      "kind": "alias",
+      "value": "Literal['bid', 'ask', 'both']"
+    },
+    "exness.models.CandleSide": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.CandleSide.close": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.CandleSide.high": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.CandleSide.low": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.CandleSide.open": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.CandleTimeframe": {
+      "kind": "alias",
+      "value": "Literal['S1', 'S5', 'S15', 'M1', 'M3', 'M5', 'M10', 'M15', 'M30', 'H1', 'H2', 'H4', 'D1', 'W1', 'MN']"
+    },
+    "exness.models.ClosedOrderState": {
+      "kind": "alias",
+      "value": "Literal['filled', 'cancelled', 'rejected']"
+    },
+    "exness.models.CommissionSettings": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.CommissionSettings.commission_type": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['undefined', 'per_lot_per_side', 'per_lot_per_trade', 'per_million_usd'] | None"
+    },
+    "exness.models.CommissionSettings.commission_value": {
+      "default": "None",
+      "kind": "field",
+      "type": "Money | None"
+    },
+    "exness.models.Deal": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Deal.commission": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Deal.create_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.Deal.deal_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.models.Deal.direction": {
+      "default": "None",
+      "kind": "field",
+      "type": "Direction | None"
+    },
+    "exness.models.Deal.instrument": {
+      "default": "None",
+      "kind": "field",
+      "type": "Instrument | None"
+    },
+    "exness.models.Deal.order_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.models.Deal.position_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.models.Deal.price": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Deal.profit": {
+      "default": "None",
+      "kind": "field",
+      "type": "ProfitAmount | None"
+    },
+    "exness.models.Deal.type": {
+      "default": null,
+      "kind": "field",
+      "type": "DealType"
+    },
+    "exness.models.Deal.volume": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.DealHistoryItem": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.DealHistoryItem.deal": {
+      "default": null,
+      "kind": "field",
+      "type": "Deal"
+    },
+    "exness.models.DealHistoryItem.event_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.DealType": {
+      "kind": "alias",
+      "value": "Literal['open', 'close', 'balance', 'null_compensation', 'swap_fee', 'admin_fee', 'dividend', 'exness_dollar']"
+    },
+    "exness.models.DecimalValue": {
+      "kind": "alias",
+      "value": "Annotated[Decimal, BeforeValidator(_decimal_string)]"
+    },
+    "exness.models.Direction": {
+      "kind": "alias",
+      "value": "Literal['buy', 'sell']"
+    },
+    "exness.models.HistoryPage": {
+      "bases": [
+        "APIModel",
+        "Generic[ItemT]"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.HistoryPage.has_more": {
+      "default": "None",
+      "kind": "field",
+      "type": "bool | None"
+    },
+    "exness.models.HistoryPage.items": {
+      "default": null,
+      "kind": "field",
+      "type": "list[ItemT]"
+    },
+    "exness.models.HistoryPage.next_cursor": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.HistoryPage.range": {
+      "default": "None",
+      "kind": "field",
+      "type": "HistoryRange | None"
+    },
+    "exness.models.HistoryRange": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.HistoryRange.from_time": {
+      "default": "Field(default=None, alias='from')",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.HistoryRange.to_time": {
+      "default": "Field(default=None, alias='to')",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.HttpMethod": {
+      "kind": "alias",
+      "value": "Literal['GET', 'POST', 'PUT', 'PATCH', 'DELETE']"
+    },
+    "exness.models.Identifier": {
+      "kind": "alias",
+      "value": "Annotated[str, Field(pattern='^[0-9]{1,20}$'), AfterValidator(_uint64)]"
+    },
+    "exness.models.Instrument": {
+      "kind": "alias",
+      "value": "Annotated[str, Field(min_length=1, max_length=11, pattern='^[A-Za-z0-9._-]+$')]"
+    },
+    "exness.models.InstrumentConditions": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.InstrumentConditions.base_currency": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.calc_mode": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['undefined', 'forex', 'forex_no_leverage', 'cfd', 'cfd_leverage'] | None"
+    },
+    "exness.models.InstrumentConditions.category": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.commission_settings": {
+      "default": "None",
+      "kind": "field",
+      "type": "CommissionSettings | None"
+    },
+    "exness.models.InstrumentConditions.contract_size": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.description": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.exec_mode": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['undefined', 'instant', 'market'] | None"
+    },
+    "exness.models.InstrumentConditions.filling_modes": {
+      "default": "None",
+      "kind": "field",
+      "type": "list[Literal['fok', 'ioc', 'boc']] | None"
+    },
+    "exness.models.InstrumentConditions.instrument": {
+      "default": null,
+      "kind": "field",
+      "type": "Instrument"
+    },
+    "exness.models.InstrumentConditions.international_name": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.margin_currency": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.margin_percent": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.order_types": {
+      "default": "None",
+      "kind": "field",
+      "type": "list[Literal['stop', 'limit', 'stoplimit', 'market']] | None"
+    },
+    "exness.models.InstrumentConditions.point_digits": {
+      "default": "None",
+      "kind": "field",
+      "type": "Int32 | None"
+    },
+    "exness.models.InstrumentConditions.quote_currency": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentConditions.swap_long": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.swap_multipliers": {
+      "default": "None",
+      "kind": "field",
+      "type": "list[SwapMultiplier] | None"
+    },
+    "exness.models.InstrumentConditions.swap_short": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.trade_mode": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['enabled', 'trading_disabled'] | None"
+    },
+    "exness.models.InstrumentConditions.trade_sessions": {
+      "default": "None",
+      "kind": "field",
+      "type": "list[InstrumentSession] | None"
+    },
+    "exness.models.InstrumentConditions.volume_max": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.volume_min": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentConditions.volume_step": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.InstrumentSession": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.InstrumentSession.trade_mode": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['enabled', 'trading_disabled'] | None"
+    },
+    "exness.models.InstrumentSession.week_end_time": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.InstrumentSession.week_start_time": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.Instruments": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Instruments.instruments": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Instrument]"
+    },
+    "exness.models.Int32": {
+      "kind": "alias",
+      "value": "Annotated[int, Field(ge=-2 ** 31, le=2 ** 31 - 1)]"
+    },
+    "exness.models.ItemT": {
+      "kind": "alias",
+      "value": "TypeVar('ItemT')"
+    },
+    "exness.models.Limits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Limits.limits": {
+      "default": null,
+      "kind": "field",
+      "type": "ApiLimits"
+    },
+    "exness.models.Money": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Money.amount": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Money.currency": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.OperationState": {
+      "kind": "alias",
+      "value": "Literal['pending', 'confirmed', 'rejected', 'failed']"
+    },
+    "exness.models.OperationStatus": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.OperationStatus.client_request_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.OperationStatus.created_at": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.OperationStatus.error_code": {
+      "default": "None",
+      "kind": "field",
+      "type": "Int32 | None"
+    },
+    "exness.models.OperationStatus.error_message": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.OperationStatus.is_terminal": {
+      "decorators": [
+        "property"
+      ],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "bool"
+    },
+    "exness.models.OperationStatus.operation_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.models.OperationStatus.status": {
+      "default": null,
+      "kind": "field",
+      "type": "OperationState"
+    },
+    "exness.models.OperationStatus.updated_at": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.Order": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Order.create_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.Order.direction": {
+      "default": "None",
+      "kind": "field",
+      "type": "Direction | None"
+    },
+    "exness.models.Order.instrument": {
+      "default": "None",
+      "kind": "field",
+      "type": "Instrument | None"
+    },
+    "exness.models.Order.order_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.models.Order.order_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['market', 'stop', 'limit', 'sltp']"
+    },
+    "exness.models.Order.position_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.models.Order.price": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Order.reason": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['undefined', 'sl', 'tp', 'so', 'margin_check_failed', 'dealer', 'close_by', 'stock_split', 'trading_server'] | None"
+    },
+    "exness.models.Order.state": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['pending_new', 'placed', 'filled', 'cancelled', 'rejected']"
+    },
+    "exness.models.Order.stop_loss_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Order.take_profit_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Order.update_time": {
+      "default": "None",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.Order.volume": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.OrderHistoryItem": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.OrderHistoryItem.event_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.OrderHistoryItem.order": {
+      "default": null,
+      "kind": "field",
+      "type": "Order"
+    },
+    "exness.models.Position": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Position.commission": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Position.create_time": {
+      "default": null,
+      "kind": "field",
+      "type": "AwareDatetime"
+    },
+    "exness.models.Position.direction": {
+      "default": null,
+      "kind": "field",
+      "type": "Direction"
+    },
+    "exness.models.Position.initial_volume": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Position.instrument": {
+      "default": null,
+      "kind": "field",
+      "type": "Instrument"
+    },
+    "exness.models.Position.margin_rate": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Position.open_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Position.position_id": {
+      "default": null,
+      "kind": "field",
+      "type": "Identifier"
+    },
+    "exness.models.Position.rollover_time": {
+      "default": "None",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.Position.state": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['open', 'closed']"
+    },
+    "exness.models.Position.swap": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.Position.volume": {
+      "default": null,
+      "kind": "field",
+      "type": "DecimalValue"
+    },
+    "exness.models.PositiveInt": {
+      "kind": "alias",
+      "value": "Annotated[int, Field(ge=1)]"
+    },
+    "exness.models.ProfitAmount": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.ProfitAmount.amount": {
+      "default": "None",
+      "kind": "field",
+      "type": "DecimalValue | None"
+    },
+    "exness.models.ProfitAmount.currency": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.PublicError": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.PublicError.code": {
+      "default": null,
+      "kind": "field",
+      "type": "int"
+    },
+    "exness.models.PublicError.error_message": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.RateLimit": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.RateLimit.limit": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.RateLimit.window_seconds": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.RequestLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.RequestLimits.history_age_days": {
+      "default": "None",
+      "kind": "field",
+      "type": "PositiveInt | None"
+    },
+    "exness.models.RequestLimits.history_range_days": {
+      "default": "None",
+      "kind": "field",
+      "type": "PositiveInt | None"
+    },
+    "exness.models.RequestLimits.max_candles_per_request": {
+      "default": "None",
+      "kind": "field",
+      "type": "PositiveInt | None"
+    },
+    "exness.models.RequestLimits.max_candles_per_request_description": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.RestLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.RestLimits.global_account_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "RateLimit"
+    },
+    "exness.models.RestLimits.methods": {
+      "default": null,
+      "kind": "field",
+      "type": "list[RestMethodLimits]"
+    },
+    "exness.models.RestMethodLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.RestMethodLimits.api_operation_id": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.RestMethodLimits.http_method": {
+      "default": null,
+      "kind": "field",
+      "type": "HttpMethod"
+    },
+    "exness.models.RestMethodLimits.limits": {
+      "default": "None",
+      "kind": "field",
+      "type": "RequestLimits | None"
+    },
+    "exness.models.RestMethodLimits.path": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.RestMethodLimits.rate_limit": {
+      "default": null,
+      "kind": "field",
+      "type": "RateLimit"
+    },
+    "exness.models.StrikeLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.StrikeLimits.period_ms": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.StrikeLimits.refill_amount": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.StrikeLimits.threshold": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.SwapMultiplier": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.SwapMultiplier.day": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.models.SwapMultiplier.multiplier": {
+      "default": "None",
+      "kind": "field",
+      "type": "Int32 | None"
+    },
+    "exness.models.Tick": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.Tick.ask": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.Tick.bid": {
+      "default": "None",
+      "kind": "field",
+      "type": "FiniteFloat | None"
+    },
+    "exness.models.Tick.instrument": {
+      "default": "None",
+      "kind": "field",
+      "type": "Instrument | None"
+    },
+    "exness.models.Tick.timestamp": {
+      "default": "None",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.models.TokenBucketLimit": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.TokenBucketLimit.burst": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.TokenBucketLimit.limit": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.TokenBucketLimit.window_seconds": {
+      "default": null,
+      "kind": "field",
+      "type": "Annotated[float, Field(gt=0)]"
+    },
+    "exness.models.TradingSnapshot": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.TradingSnapshot.account_state": {
+      "default": null,
+      "kind": "field",
+      "type": "AccountState"
+    },
+    "exness.models.TradingSnapshot.orders": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Order]"
+    },
+    "exness.models.TradingSnapshot.positions": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Position]"
+    },
+    "exness.models.WebSocketAccountLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.WebSocketAccountLimits.connection_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "TokenBucketLimit"
+    },
+    "exness.models.WebSocketAccountLimits.inbound_message_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "TokenBucketLimit"
+    },
+    "exness.models.WebSocketAccountLimits.max_active_connections": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.WebSocketAccountLimits.max_inbound_message_bytes": {
+      "default": null,
+      "kind": "field",
+      "type": "PositiveInt"
+    },
+    "exness.models.WebSocketAccountLimits.strikes": {
+      "default": null,
+      "kind": "field",
+      "type": "StrikeLimits"
+    },
+    "exness.models.WebSocketEndpointLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.WebSocketEndpointLimits.api_operation_id": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.WebSocketEndpointLimits.connection_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "TokenBucketLimit"
+    },
+    "exness.models.WebSocketEndpointLimits.http_method": {
+      "default": null,
+      "kind": "field",
+      "type": "HttpMethod"
+    },
+    "exness.models.WebSocketEndpointLimits.inbound_message_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "TokenBucketLimit"
+    },
+    "exness.models.WebSocketEndpointLimits.path": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.WebSocketEndpointLimits.subscription_operation_rate": {
+      "default": null,
+      "kind": "field",
+      "type": "dict[str, TokenBucketLimit]"
+    },
+    "exness.models.WebSocketErrorResponse": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.WebSocketErrorResponse.code": {
+      "default": null,
+      "kind": "field",
+      "type": "int"
+    },
+    "exness.models.WebSocketErrorResponse.error_message": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.WebSocketErrorResponse.id": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.models.WebSocketLimits": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.models.WebSocketLimits.endpoints": {
+      "default": null,
+      "kind": "field",
+      "type": "list[WebSocketEndpointLimits]"
+    },
+    "exness.models.WebSocketLimits.global_account_limits": {
+      "default": null,
+      "kind": "field",
+      "type": "WebSocketAccountLimits"
+    },
+    "exness.operations.OperationReference": {
+      "bases": [],
+      "decorators": [
+        "dataclass(frozen=True, repr=False)"
+      ],
+      "kind": "class"
+    },
+    "exness.operations.OperationReference.client_request_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.operations.OperationReference.from_ack": {
+      "decorators": [
+        "classmethod"
+      ],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "cls",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "ack",
+          "type": "AckResponse"
+        },
+        {
+          "default": "None",
+          "kind": "keyword",
+          "name": "client_request_id",
+          "type": "str | None"
+        }
+      ],
+      "return": "OperationReference"
+    },
+    "exness.operations.OperationReference.matches_event": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "event",
+          "type": "TransactionEvent"
+        }
+      ],
+      "return": "bool"
+    },
+    "exness.operations.OperationReference.matches_status": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "status",
+          "type": "OperationStatus"
+        }
+      ],
+      "return": "bool"
+    },
+    "exness.operations.OperationReference.operation_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.requests.ClosePositionRequest": {
+      "bases": [
+        "_Request"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.ClosePositionRequest.close_by_position_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "_RequestIdentifier | None"
+    },
+    "exness.requests.ClosePositionRequest.deviation": {
+      "default": "None",
+      "kind": "field",
+      "type": "_RequestDecimal | None"
+    },
+    "exness.requests.ClosePositionRequest.price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.ClosePositionRequest.to_query": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "dict[str, str]"
+    },
+    "exness.requests.ClosePositionRequest.volume": {
+      "default": "None",
+      "kind": "field",
+      "type": "Annotated[_RequestDecimal, Field(ge=0)] | None"
+    },
+    "exness.requests.LimitOrderRequest": {
+      "bases": [
+        "_PendingOrder"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.LimitOrderRequest.type": {
+      "default": "'limit'",
+      "kind": "field",
+      "type": "Literal['limit']"
+    },
+    "exness.requests.ModifyOrderRequest": {
+      "bases": [
+        "_Request"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.ModifyOrderRequest.comment": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.requests.ModifyOrderRequest.price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.ModifyOrderRequest.stop_loss_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.ModifyOrderRequest.take_profit_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.OpenPositionRequest": {
+      "bases": [
+        "_Request"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.OpenPositionRequest.comment": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.requests.OpenPositionRequest.deviation": {
+      "default": "None",
+      "kind": "field",
+      "type": "_RequestDecimal | None"
+    },
+    "exness.requests.OpenPositionRequest.instrument": {
+      "default": null,
+      "kind": "field",
+      "type": "Instrument"
+    },
+    "exness.requests.OpenPositionRequest.price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.OpenPositionRequest.side": {
+      "default": null,
+      "kind": "field",
+      "type": "Direction"
+    },
+    "exness.requests.OpenPositionRequest.stop_loss_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.OpenPositionRequest.take_profit_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.OpenPositionRequest.volume": {
+      "default": null,
+      "kind": "field",
+      "type": "_PositiveDecimal"
+    },
+    "exness.requests.PendingOrderRequest": {
+      "kind": "alias",
+      "value": "LimitOrderRequest | StopOrderRequest | SltpOrderRequest"
+    },
+    "exness.requests.SltpOrderRequest": {
+      "bases": [
+        "_Request"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.SltpOrderRequest.comment": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.requests.SltpOrderRequest.position_id": {
+      "default": null,
+      "kind": "field",
+      "type": "_RequestIdentifier"
+    },
+    "exness.requests.SltpOrderRequest.stop_loss_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.SltpOrderRequest.take_profit_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests.SltpOrderRequest.type": {
+      "default": "'sltp'",
+      "kind": "field",
+      "type": "Literal['sltp']"
+    },
+    "exness.requests.StopOrderRequest": {
+      "bases": [
+        "_PendingOrder"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests.StopOrderRequest.type": {
+      "default": "'stop'",
+      "kind": "field",
+      "type": "Literal['stop']"
+    },
+    "exness.requests._PendingOrder": {
+      "bases": [
+        "_Request"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests._PendingOrder.comment": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.requests._PendingOrder.instrument": {
+      "default": null,
+      "kind": "field",
+      "type": "Instrument"
+    },
+    "exness.requests._PendingOrder.price": {
+      "default": null,
+      "kind": "field",
+      "type": "_PositiveDecimal"
+    },
+    "exness.requests._PendingOrder.side": {
+      "default": null,
+      "kind": "field",
+      "type": "Direction"
+    },
+    "exness.requests._PendingOrder.stop_loss_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests._PendingOrder.take_profit_price": {
+      "default": "None",
+      "kind": "field",
+      "type": "_PositiveDecimal | None"
+    },
+    "exness.requests._PendingOrder.volume": {
+      "default": null,
+      "kind": "field",
+      "type": "_PositiveDecimal"
+    },
+    "exness.requests._Request": {
+      "bases": [
+        "BaseModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.requests._Request.to_body": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "self",
+          "type": null
+        }
+      ],
+      "return": "bytes"
+    },
+    "exness.ticks.EventT": {
+      "kind": "alias",
+      "value": "TypeVar('EventT')"
+    },
+    "exness.ticks.StreamGap": {
+      "kind": "alias",
+      "value": "TickStreamGap"
+    },
+    "exness.ticks.StreamOptions": {
+      "kind": "alias",
+      "value": "TickStreamOptions"
+    },
+    "exness.ticks.TickStreamGap": {
+      "bases": [],
+      "decorators": [
+        "dataclass(frozen=True)"
+      ],
+      "kind": "class"
+    },
+    "exness.ticks.TickStreamGap.close_code": {
+      "default": "None",
+      "kind": "field",
+      "type": "int | None"
+    },
+    "exness.ticks.TickStreamGap.delay": {
+      "default": null,
+      "kind": "field",
+      "type": "float"
+    },
+    "exness.ticks.TickStreamGap.reconnect_attempt": {
+      "default": null,
+      "kind": "field",
+      "type": "int"
+    },
+    "exness.ticks.TickStreamOptions": {
+      "bases": [],
+      "decorators": [
+        "dataclass(frozen=True)"
+      ],
+      "kind": "class"
+    },
+    "exness.ticks.TickStreamOptions.max_message_bytes": {
+      "default": "65536",
+      "kind": "field",
+      "type": "int"
+    },
+    "exness.ticks.TickStreamOptions.max_reconnect_delay": {
+      "default": "30.0",
+      "kind": "field",
+      "type": "float"
+    },
+    "exness.ticks.TickStreamOptions.max_reconnects": {
+      "default": "0",
+      "kind": "field",
+      "type": "int"
+    },
+    "exness.ticks.TickStreamOptions.open_timeout": {
+      "default": "15.0",
+      "kind": "field",
+      "type": "float"
+    },
+    "exness.ticks.TickStreamOptions.reconnect_delay": {
+      "default": "1.0",
+      "kind": "field",
+      "type": "float"
+    },
+    "exness.ticks.stream_ticks": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "client",
+          "type": "AsyncExnessClient"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "instruments",
+          "type": "Sequence[str]"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "options",
+          "type": "TickStreamOptions"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[Tick | TickStreamGap, None]"
+    },
+    "exness.trading.TradingEvent": {
+      "kind": "alias",
+      "value": "TradingSnapshotEvent | TransactionEvent"
+    },
+    "exness.trading.TradingSnapshotEvent": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.trading.TradingSnapshotEvent.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['trading_state_snapshot']"
+    },
+    "exness.trading.TradingSnapshotEvent.payload": {
+      "default": null,
+      "kind": "field",
+      "type": "TradingSnapshot"
+    },
+    "exness.trading.TradingStreamGap": {
+      "kind": "alias",
+      "value": "TickStreamGap"
+    },
+    "exness.trading.TradingStreamOptions": {
+      "kind": "alias",
+      "value": "TickStreamOptions"
+    },
+    "exness.trading.TransactionAccountState": {
+      "bases": [
+        "AccountState"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.trading.TransactionAccountState.leverage": {
+      "default": null,
+      "kind": "field",
+      "type": "str"
+    },
+    "exness.trading.TransactionEvent": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.trading.TransactionEvent.client_request_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.trading.TransactionEvent.error_code": {
+      "default": "None",
+      "kind": "field",
+      "type": "Int32 | None"
+    },
+    "exness.trading.TransactionEvent.error_message": {
+      "default": "None",
+      "kind": "field",
+      "type": "str | None"
+    },
+    "exness.trading.TransactionEvent.event_time": {
+      "default": "None",
+      "kind": "field",
+      "type": "AwareDatetime | None"
+    },
+    "exness.trading.TransactionEvent.event_type": {
+      "default": null,
+      "kind": "field",
+      "type": "Literal['transaction_event']"
+    },
+    "exness.trading.TransactionEvent.operation_id": {
+      "default": "None",
+      "kind": "field",
+      "type": "Identifier | None"
+    },
+    "exness.trading.TransactionEvent.payload": {
+      "default": null,
+      "kind": "field",
+      "type": "TransactionPayload"
+    },
+    "exness.trading.TransactionEvent.status": {
+      "default": "None",
+      "kind": "field",
+      "type": "Literal['success', 'rejected', 'failed'] | None"
+    },
+    "exness.trading.TransactionPayload": {
+      "bases": [
+        "APIModel"
+      ],
+      "decorators": [],
+      "kind": "class"
+    },
+    "exness.trading.TransactionPayload.account_state": {
+      "default": "None",
+      "kind": "field",
+      "type": "TransactionAccountState | None"
+    },
+    "exness.trading.TransactionPayload.deals": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Deal]"
+    },
+    "exness.trading.TransactionPayload.nonnull_account_state": {
+      "decorators": [
+        "field_validator('account_state', mode='before')",
+        "classmethod"
+      ],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "cls",
+          "type": null
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "value",
+          "type": "object"
+        }
+      ],
+      "return": "object"
+    },
+    "exness.trading.TransactionPayload.orders": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Order]"
+    },
+    "exness.trading.TransactionPayload.positions": {
+      "default": "Field(default_factory=list)",
+      "kind": "field",
+      "type": "list[Position]"
+    },
+    "exness.trading.stream_trading": {
+      "decorators": [],
+      "kind": "function",
+      "params": [
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "client",
+          "type": "AsyncExnessClient"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "options",
+          "type": "TradingStreamOptions"
+        },
+        {
+          "default": null,
+          "kind": "positional",
+          "name": "ssl_context",
+          "type": "ssl.SSLContext | None"
+        }
+      ],
+      "return": "AsyncGenerator[TradingEvent | TradingStreamGap, None]"
+    }
+  },
+  "revision": "1cedf7d12b9977e2d7a4204b9e12ba0d9733d1c2"
+}

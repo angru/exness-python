@@ -50,7 +50,7 @@ dev = [
 packages = ["src/exness"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/consumers", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/TRADING_WRITES.md", "/API_REVIEW.md", "/RESPONSE_VALIDATION.md", "/PARITY.md", "/PERFORMANCE.md", "/CONSUMERS.md", "/RELEASE.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
+include = ["/src", "/tests", "/consumers", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/TRADING_WRITES.md", "/API_REVIEW.md", "/RESPONSE_VALIDATION.md", "/PARITY.md", "/PERFORMANCE.md", "/CONSUMERS.md", "/PUBLIC_COMPATIBILITY.md", "/RELEASE.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
 
 [tool.ruff]
 target-version = "py311"
