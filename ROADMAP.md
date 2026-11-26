@@ -162,3 +162,9 @@ Worker Board completed implementation, verification and independent review for e
 ## Open: contract impact triage
 
 - [ ] [Review SDK impact of OpenAPI drift](https://github.com/angru/exness-python/issues/10).
+
+## Cross-SDK transport check
+
+- The Python parity job compares both public clients against one local TLS
+  listener. See the [offline command](PARITY.md#compare-public-clients-over-loopback-tls)
+  and [issue #14](https://github.com/angru/exness-python/issues/14).

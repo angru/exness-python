@@ -89,6 +89,36 @@ Python SHA to the Go pin in their respective repositories, review those edits an
 run both pinned CI jobs. The pin changes themselves need separate commits; the
 proposed SHAs identify the tested candidate commits, not those later pin commits.
 
+## Compare public clients over loopback TLS
+
+The Python-owned transport check exercises the public asyncio client and a
+standalone Go consumer. Both use the same ephemeral HTTPS/WebSocket listener on
+`127.0.0.1` and explicitly trust its temporary certificate. Each client makes two
+account reads with one discovery request, subscribes to EURUSD ticks, receives
+one valid tick and returns a protocol error for the next malformed message.
+The listener verifies each synthetic signature against the received request target.
+Both observed transcripts must match the expected paths, subscription and results.
+The report excludes generated request IDs, timestamps, ports, credentials and
+signed headers. The decoder and recovery checks run separately.
+
+Use Go 1.26 and a clean Go checkout at the full SHA recorded in
+`tools/parity-peer.json`. Prepare dependencies with `go mod download` in that
+checkout and `uv sync --locked` in the Python checkout. With those dependencies
+cached, run from the Python checkout:
+
+```sh
+PEER_REVISION=$(python3 -c 'import json; print(json.load(open("tools/parity-peer.json"))["revision"])')
+UV_OFFLINE=1 uv run --no-sync python -m tools.check_transport \
+  --go-root ../exness-go --go-revision "$PEER_REVISION"
+```
+
+Pass `--go /path/to/go` to select a Go executable. The command verifies Go HEAD
+and cleanliness before and after the check, builds the consumer in a temporary
+module against the supplied checkout, and disables Go module fetching during
+the build. Loopback socket binding is required. The command exits nonzero for
+checkout, build, transport or transcript failures. The Python parity job runs it
+as a dedicated step against its ordinary pinned Go checkout.
+
 ## CI and updating a compatible pair
 
 Each repository has a separate `parity` CI job. It checks the current revision
