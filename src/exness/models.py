@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import (
+    AfterValidator,
     AwareDatetime,
     BaseModel,
     BeforeValidator,
@@ -30,7 +31,21 @@ def _decimal_string(value: object) -> Decimal:
 
 
 DecimalValue = Annotated[Decimal, BeforeValidator(_decimal_string)]
-Identifier = Annotated[str, Field(pattern=r"^[0-9]{1,20}$")]
+
+
+def _uint64(value: str) -> str:
+    if int(value) >= 2**64:
+        raise ValueError("Identifier must fit uint64")
+    return value
+
+
+def _nonnull(value: object) -> object:
+    if value is None:
+        raise ValueError("Omit this field instead of supplying null")
+    return value
+
+
+Identifier = Annotated[str, Field(pattern=r"^[0-9]{1,20}$"), AfterValidator(_uint64)]
 Instrument = Annotated[str, Field(min_length=1, max_length=11, pattern=r"^[A-Za-z0-9._-]+$")]
 PositiveInt = Annotated[int, Field(ge=1)]
 Direction = Literal["buy", "sell"]
@@ -64,12 +79,10 @@ class AckResponse(APIModel):
     operation_id: Identifier | None = None
     client_request_id: str | None = None
 
-    @field_validator("operation_id")
+    @field_validator("operation_id", "client_request_id")
     @classmethod
-    def _uint64_operation_id(cls, value: str | None) -> str | None:
-        if value is not None and int(value) >= 2**64:
-            raise ValueError("operation_id must fit uint64")
-        return value
+    def _present_fields(cls, value: object) -> object:
+        return _nonnull(value)
 
 
 class PublicError(APIModel):
@@ -132,6 +145,11 @@ class Order(APIModel):
         | None
     ) = None
 
+    @field_validator("position_id", "direction")
+    @classmethod
+    def _present_fields(cls, value: object) -> object:
+        return _nonnull(value)
+
 
 class Position(APIModel):
     position_id: Identifier
@@ -171,6 +189,11 @@ class Deal(APIModel):
     price: DecimalValue | None = None
     profit: ProfitAmount | None = None
     commission: DecimalValue | None = None
+
+    @field_validator("order_id", "position_id", "direction")
+    @classmethod
+    def _present_fields(cls, value: object) -> object:
+        return _nonnull(value)
 
 
 class OrderHistoryItem(APIModel):
@@ -371,6 +394,11 @@ class OperationStatus(APIModel):
     client_request_id: str | None = None
     error_code: Int32 | None = None
     error_message: str | None = None
+
+    @field_validator("client_request_id", "error_code", "error_message")
+    @classmethod
+    def _present_fields(cls, value: object) -> object:
+        return _nonnull(value)
 
     @property
     def is_terminal(self) -> bool:

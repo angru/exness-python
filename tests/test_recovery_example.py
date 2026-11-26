@@ -94,15 +94,23 @@ def test_bad_snapshot_invalidates_instead_of_merging(invalid: str) -> None:
         positions.append({**positions[0], "position_id": "0002001"})
     elif invalid == "closed":
         positions[0]["state"] = "closed"
-    elif invalid == "overflow":
-        positions[0]["position_id"] = "18446744073709551616"
-    else:
+    elif invalid == "oversized":
         data["payload"]["positions"] = [
             {**positions[0], "position_id": str(index)} for index in range(LIMIT + 1)
         ]
     view = baseline()
+    snapshot = TradingSnapshotEvent.model_validate_json(json.dumps(data))
+    if invalid == "overflow":
+        # The SDK now rejects overflow during decoding; bypass it to exercise
+        # the example's independent defense for manually constructed objects.
+        position = snapshot.payload.positions[0].model_copy(
+            update={"position_id": "18446744073709551616"}
+        )
+        snapshot = snapshot.model_copy(
+            update={"payload": snapshot.payload.model_copy(update={"positions": [position]})}
+        )
     with pytest.raises(ProtocolError):
-        view.on_stream(TradingSnapshotEvent.model_validate_json(json.dumps(data)))
+        view.on_stream(snapshot)
     assert not view.ready and not view.positions and view.account is None
 
 

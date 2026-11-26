@@ -70,13 +70,10 @@ def test_ack_identity_and_validation() -> None:
             OperationReference(client_request_id=key)
     with pytest.raises(ProtocolError):
         ref.matches_event(
+            # Bypass construction validation to retain the correlation helper's guard test.
             TransactionEvent.model_validate(
-                {
-                    "event_type": "transaction_event",
-                    "payload": {},
-                    "operation_id": "18446744073709551616",
-                }
-            )
+                {"event_type": "transaction_event", "payload": {}}
+            ).model_copy(update={"operation_id": "18446744073709551616"})
         )
 
 

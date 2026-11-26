@@ -1,0 +1,1714 @@
+[
+  {
+    "name": "ack_baseline",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_unknown_field",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "status_baseline",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "status_unknown_field",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_baseline",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_unknown_field",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_baseline",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_unknown_field",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_baseline",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_unknown_field",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_baseline",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "",
+    "action": "none",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_unknown_field",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "future_field",
+    "action": "set",
+    "value": {
+      "opaque": true
+    },
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "id_0_zero",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_leading_zero",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_maximum",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_overflow",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_negative",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_number",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_0_newline",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_zero",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_leading_zero",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_maximum",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_overflow",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_negative",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_number",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_1_newline",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_zero",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_leading_zero",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_maximum",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_overflow",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_negative",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_number",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_2_newline",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_zero",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_leading_zero",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_maximum",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_overflow",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_negative",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_number",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_3_newline",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.position_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_zero",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_leading_zero",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_maximum",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_negative",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_number",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_4_newline",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_zero",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_leading_zero",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_maximum",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_negative",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_number",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_5_newline",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions.0.position_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_leading_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_maximum",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_negative",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_number",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_6_newline",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.deal_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_leading_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_maximum",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_negative",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_number",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_7_newline",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_leading_zero",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_maximum",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_negative",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_number",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_8_newline",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.position_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_zero",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_leading_zero",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_maximum",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_overflow",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_negative",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_number",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_9_newline",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_zero",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "0",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_leading_zero",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "000789",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_maximum",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "18446744073709551615",
+    "valid": true,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_overflow",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "18446744073709551616",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_negative",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "-1",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_number",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": 789,
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "id_10_newline",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids.0",
+    "action": "set",
+    "value": "789\n",
+    "valid": false,
+    "rule": "uint64"
+  },
+  {
+    "name": "ack_status_missing",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "status",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_status_null",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "status",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_operation_id_missing",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_operation_id_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "operation_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_status_missing",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "status",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_status_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "status",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_created_at_missing",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "created_at",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_created_at_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "created_at",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_updated_at_missing",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "updated_at",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_updated_at_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "updated_at",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_account_state_missing",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "account_state",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_account_state_null",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "account_state",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_event_type_missing",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "event_type",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_event_type_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "event_type",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload_missing",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "payload",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "payload",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_event_type_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "event_type",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_event_type_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "event_type",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_periods_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_periods_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_event_type_missing",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "event_type",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_event_type_null",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "event_type",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_upserted_periods_missing",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "upserted_periods",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_upserted_periods_null",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "upserted_periods",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_removed_period_ids_missing",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_update_removed_period_ids_null",
+    "kind": "hmr_update",
+    "fixture": "hmr_update",
+    "path": "removed_period_ids",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_operation_id_explicit_null",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_operation_id_omitted",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "operation_id",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_client_request_id_explicit_null",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "client_request_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_client_request_id_omitted",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "client_request_id",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "status_client_request_id_explicit_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "client_request_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_client_request_id_omitted",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "client_request_id",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "status_error_code_explicit_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "error_code",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_error_code_omitted",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "error_code",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "status_error_message_explicit_null",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "error_message",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_error_message_omitted",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "error_message",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_operation_id_explicit_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_operation_id_omitted",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "operation_id",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_status_explicit_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "status",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_status_omitted",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "status",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_error_code_explicit_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "error_code",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_error_code_omitted",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "error_code",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_error_message_explicit_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "error_message",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_error_message_omitted",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "error_message",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_event_time_explicit_null",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "event_time",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_event_time_omitted",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "event_time",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_nullable_caller_key",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "client_request_id",
+    "action": "set",
+    "value": null,
+    "valid": true,
+    "rule": "legacy_nullable"
+  },
+  {
+    "name": "snapshot_orders_array_null",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_orders_array_absent",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_positions_array_null",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_positions_array_absent",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload.positions_array_null",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload.positions_array_absent",
+    "kind": "transaction",
+    "fixture": "transaction_partial_close",
+    "path": "payload.positions",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload.deals_array_null",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload.deals_array_absent",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals",
+    "action": "delete",
+    "value": null,
+    "valid": true,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_period_id_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_period_id_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.period_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_event_type_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.event_type",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_event_type_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.event_type",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_instruments_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.instruments",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_instruments_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.instruments",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_leverage_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.leverage",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_leverage_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.leverage",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_start_time_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.start_time",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_start_time_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.start_time",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_end_time_missing",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.end_time",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_period_end_time_null",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.end_time",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "ack_status_bad_state",
+    "kind": "ack",
+    "fixture": "ack_accepted",
+    "path": "status",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "status_status_bad_state",
+    "kind": "status",
+    "fixture": "operation_pending",
+    "path": "status",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_status_bad_state",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "status",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_orders.0.state_bad_state",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.state",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_orders.0.order_type_bad_state",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.order_type",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_positions.0.state_bad_state",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.state",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "snapshot_positions.0.direction_bad_state",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.direction",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_payload.deals.0.type_bad_state",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.type",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "hmr_snapshot_periods.0.event_type_bad_state",
+    "kind": "hmr_snapshot",
+    "fixture": "hmr_snapshot",
+    "path": "periods.0.event_type",
+    "action": "set",
+    "value": "future-invalid-state",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_error_code_int32_overflow",
+    "kind": "transaction",
+    "fixture": "transaction_rejected",
+    "path": "error_code",
+    "action": "set",
+    "value": 2147483648,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "transaction_naive_time",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "event_time",
+    "action": "set",
+    "value": "2026-01-01T00:00:00",
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "position_missing_volume",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "positions.0.volume",
+    "action": "delete",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "order_null_related_id",
+    "kind": "snapshot",
+    "fixture": "snapshot",
+    "path": "orders.0.position_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  },
+  {
+    "name": "deal_null_related_id",
+    "kind": "transaction",
+    "fixture": "transaction_balance",
+    "path": "payload.deals.0.order_id",
+    "action": "set",
+    "value": null,
+    "valid": false,
+    "rule": "contract"
+  }
+]

@@ -15,10 +15,12 @@ from exness.models import (
     APIModel,
     Deal,
     Identifier,
+    Int32,
     Order,
     Position,
     TradingSnapshot,
     WebSocketErrorResponse,
+    _nonnull,
 )
 from exness.ticks import TickStreamGap, TickStreamOptions, _stream
 
@@ -59,9 +61,15 @@ class TransactionEvent(APIModel):
     operation_id: Identifier | None = None
     client_request_id: str | None = None
     status: Literal["success", "rejected", "failed"] | None = None
-    error_code: int | None = None
+    error_code: Int32 | None = None
     error_message: str | None = None
     event_time: AwareDatetime | None = None
+
+    @field_validator("operation_id", "status", "error_code", "error_message", "event_time")
+    @classmethod
+    def _present_fields(cls, value: object) -> object:
+        # client_request_id explicitly allows null in the pinned contract.
+        return _nonnull(value)
 
 
 TradingEvent = TradingSnapshotEvent | TransactionEvent

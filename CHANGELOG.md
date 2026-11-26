@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Enforce uint64 response identifier bounds consistently, preserving zero and leading
+  zeroes where the response contract permits them; validate critical entity states.
+- Reject explicit null in audited non-nullable ACK/status/transaction fields and
+  snapshot arrays while preserving omission and nullable transaction caller IDs.
+- Add 170 shared positive/negative response cases and transport-facing regressions.
+  See RESPONSE_VALIDATION.md for contract evidence, scope and compatibility notes.
+
 - Add runnable offline account-recovery examples with eight shared scenarios and
   49 matching checkpoints, requiring no credentials or network connection.
 - Demonstrate snapshot replacement, partial/full closure, rejected/failed execution,
