@@ -37,6 +37,14 @@ type tradingTranscript struct {
 	Outcome string           `json:"outcome"`
 }
 
+type writeOutcome struct {
+	Error          string `json:"error"`
+	Method         string `json:"method"`
+	Path           string `json:"path"`
+	AccountID      string `json:"account_id"`
+	IdempotencyKey string `json:"idempotency_key"`
+}
+
 func run(origin, certPath, vectorPath, scenario string) error {
 	cert, err := os.ReadFile(certPath)
 	if err != nil {
@@ -84,9 +92,37 @@ func run(origin, certPath, vectorPath, scenario string) error {
 	case "trading_missing_snapshot":
 		// A protocol error must stop recovery while a second retry is available.
 		return runTrading(ctx, client, 2)
+	case "lost_ack":
+		return runLostAck(ctx, client)
 	default:
 		return errors.New("unknown scenario")
 	}
+}
+
+func runLostAck(ctx context.Context, client *exness.Client) error {
+	volume, err := exness.NewDecimal("0.01")
+	if err != nil {
+		return errors.New("initialize synthetic volume")
+	}
+	request := exness.OpenPositionRequest{
+		Instrument: "EURUSD",
+		Side:       exness.TradeBuy,
+		Volume:     volume,
+	}
+	ack, err := client.OpenPosition(ctx, request, "transport-lost-ack-0001")
+	var unknown *exness.UnknownOutcomeError
+	if ack != nil || !errors.As(err, &unknown) {
+		return errors.New("expected UnknownOutcomeError after losing the acknowledgement")
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]writeOutcome{
+		"outcome": {
+			Error:          "UnknownOutcomeError",
+			Method:         unknown.Method,
+			Path:           unknown.Path,
+			AccountID:      unknown.AccountID,
+			IdempotencyKey: unknown.IdempotencyKey,
+		},
+	})
 }
 
 func runTicks(ctx context.Context, client *exness.Client) error {

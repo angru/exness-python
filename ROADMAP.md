@@ -165,7 +165,8 @@ Worker Board completed implementation, verification and independent review for e
 
 ## Cross-SDK transport check
 
-- The Python parity job compares both public clients against one local TLS
-  listener. See the [offline command](PARITY.md#compare-public-clients-over-loopback-tls)
+- The Python parity job compares both public clients against shared local TLS
+  fixtures. See the [offline command](PARITY.md#compare-public-clients-over-loopback-tls)
   and [issue #14](https://github.com/angru/exness-python/issues/14).
 - [ ] [Compare transaction-stream recovery and missing-snapshot rejection](https://github.com/angru/exness-python/issues/16).
+- [ ] [Compare write receipt and unknown-outcome identity after a lost acknowledgement](https://github.com/angru/exness-python/issues/18).

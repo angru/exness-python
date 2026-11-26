@@ -3,6 +3,7 @@ import json
 import ssl
 import subprocess
 from http import HTTPStatus
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 from urllib.parse import urlsplit
@@ -26,14 +27,18 @@ from tools.transport_transcript import (
     ACCOUNT_PATH,
     DISCOVERY_PATH,
     EXPECTED,
+    POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
     Scenario,
+    compare_transcripts,
 )
+
+STREAM_SCENARIOS = [scenario for scenario in Scenario if scenario is not Scenario.LOST_ACK]
 
 
 @pytest.mark.anyio
-async def test_one_tls_listener_serves_separate_python_runs(
+async def test_each_tls_listener_serves_separate_python_runs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     run_python = transport.run_python
@@ -56,7 +61,10 @@ async def test_one_tls_listener_serves_separate_python_runs(
     monkeypatch.setattr(transport, "run_python", python_peer)
     monkeypatch.setattr(transport, "run_go", second_peer)
     assert await transport.compare_clients(tmp_path / "driver", tmp_path) == EXPECTED
-    assert len({origin for origin, _ in runs}) == 1
+    stream_origins = {origin for origin, scenario in runs if scenario in STREAM_SCENARIOS}
+    write_origins = {origin for origin, scenario in runs if scenario is Scenario.LOST_ACK}
+    assert len(stream_origins) == len(write_origins) == 1
+    assert stream_origins.isdisjoint(write_origins)
     assert [scenario for _, scenario in runs] == [
         scenario for scenario in Scenario for _ in range(2)
     ]
@@ -86,7 +94,7 @@ class MemorySocket:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("scenario", list(Scenario))
+@pytest.mark.parametrize("scenario", STREAM_SCENARIOS)
 async def test_python_scenarios_without_sockets(
     monkeypatch: pytest.MonkeyPatch, scenario: Scenario
 ) -> None:
@@ -127,6 +135,80 @@ async def test_python_scenarios_without_sockets(
 
         result = await transport.observe(script, scenario, "Python", driver)
     assert result == EXPECTED[scenario]
+
+
+def exchange_http(server: transport.LostAckServer, request: httpx.Request) -> bytes:
+    line = request.method.encode() + b" " + request.url.raw_path + b" HTTP/1.1\r\n"
+    headers = b"".join(name + b": " + value + b"\r\n" for name, value in request.headers.raw)
+    connection = Mock()
+    connection.makefile.return_value = BytesIO(line + headers + b"\r\n" + request.content)
+    transport.LostAckHandler(connection, (transport.LOOPBACK, 12345), server)
+    return b"".join(call.args[0] for call in connection.sendall.call_args_list)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("case", "failure", "posts"),
+    [
+        ("valid", None, 1),
+        ("duplicate", "duplicate POST", 2),
+        ("changed_body", "invalid signature for received request", 1),
+        ("changed_key", "invalid signature for received request", 1),
+        ("incomplete_body", "order body did not complete", 1),
+        ("oversized_body", "invalid order body length", 1),
+    ],
+)
+async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
+    monkeypatch: pytest.MonkeyPatch, case: str, failure: str | None, posts: int
+) -> None:
+    server = Mock(spec=transport.LostAckServer, origin="https://127.0.0.1", active=None)
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    observation: transport.LostAckWire | None = None
+
+    def dispatch(request: httpx.Request) -> httpx.Response:
+        nonlocal observation
+        observation = server.active
+        if request.method == "GET":
+            response = exchange_http(server, request)
+            assert response.startswith(b"HTTP/1.1 200 ")
+            return httpx.Response(200, content=response.split(b"\r\n\r\n", 1)[1])
+        if case == "changed_body":
+            request = httpx.Request(
+                request.method, request.url, headers=request.headers, content=request.content + b" "
+            )
+            request.headers["Content-Length"] = str(len(request.content))
+        elif case == "changed_key":
+            request.headers["EXN-IDEMPOTENCY-KEY"] = "different-test-key"
+        elif case == "incomplete_body":
+            request.headers["Content-Length"] = str(len(request.content) + 1)
+        elif case == "oversized_body":
+            request.headers["Content-Length"] = str(transport.MAX_ORDER_BODY + 1)
+        assert exchange_http(server, request) == b""
+        if case == "duplicate":
+            assert exchange_http(server, request) == b""
+        raise httpx.RemoteProtocolError("test cause that must stay out of the transcript")
+
+    monkeypatch.setattr(
+        httpx, "AsyncHTTPTransport", Mock(return_value=httpx.MockTransport(dispatch))
+    )
+
+    async def driver() -> dict[str, object]:
+        return await transport.run_python(server.origin, tls, Scenario.LOST_ACK)
+
+    if failure is None:
+        result = await transport.observe_lost_ack(server, "Python", driver)
+        compare_transcripts(Scenario.LOST_ACK, result, EXPECTED[Scenario.LOST_ACK])
+    else:
+        with pytest.raises(transport.CheckError, match=f"lost_ack: Python: {failure}"):
+            await transport.observe_lost_ack(server, "Python", driver)
+    assert server.active is None
+    assert observation is not None and observation.post_count == posts
+    if case in ("valid", "duplicate"):
+        assert observation.receipt == EXPECTED[Scenario.LOST_ACK]["receipt"]
+        assert observation.paths == [DISCOVERY_PATH, POSITIONS_PATH]
+    else:
+        assert observation.receipt is None
+        assert observation.paths == [DISCOVERY_PATH]
 
 
 def test_replacement_snapshot_matches_pinned_schema() -> None:
