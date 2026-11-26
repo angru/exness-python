@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import unquote
+
 from tools.check_contract import JSON, Change
 
 # Operation IDs and declarations reviewed against the pinned contract and SDK sources.
@@ -110,8 +112,9 @@ def references(document: dict[str, JSON], roots: list[JSON]) -> set[tuple[str, .
         node = stack.pop()
         if isinstance(node, dict):
             ref = node.get("$ref")
-            if isinstance(ref, str) and ref.startswith("#/"):
-                target = parts(ref[1:])
+            fragment = unquote(ref[1:]) if isinstance(ref, str) and ref.startswith("#") else ""
+            if fragment.startswith("/"):
+                target = parts(fragment)
                 if target not in found:
                     found.add(target)
                     stack.append(resolve(document, target))
@@ -150,6 +153,7 @@ def impact(
     for change in changes:
         location = parts(change.pointer)
         endpoints: list[JSON] = []
+        has_unmapped_operation = False
         for endpoint, sides in sorted(operations.items()):
             reasons: set[str] = set()
             ids: set[str] = set()
@@ -165,6 +169,7 @@ def impact(
                     reasons.add("local reference (possibly transitive)")
                     ids.add(op_id)
             if reasons:
+                has_unmapped_operation |= any(i not in OPERATIONS for i in ids)
                 mappings = sorted({OPERATIONS[i] for i in ids if i in OPERATIONS})
                 endpoints.append(
                     {
@@ -188,7 +193,9 @@ def impact(
                 "schema": schema or None,
                 "python_types": [mapping[0]] if mapping else [],
                 "go_types": [mapping[1]] if mapping else [],
-                "unmapped": not endpoints or (bool(schema) and mapping is None),
+                "unmapped": not endpoints
+                or has_unmapped_operation
+                or (bool(schema) and mapping is None),
             }
         )
     return {

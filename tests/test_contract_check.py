@@ -314,3 +314,61 @@ def test_impact_path_parameters_and_external_refs() -> None:
     endpoint = entry["endpoints"][0]
     assert isinstance(endpoint, dict) and endpoint["endpoint"] == "GET /orders"
     assert endpoint["reasons"] == ["operation or path-level parameters"]
+
+
+def test_impact_known_schema_with_known_and_unmapped_operations() -> None:
+    before = check.parse_contract(SIMPLE)
+    paths = before["paths"]
+    assert isinstance(paths, dict) and isinstance(paths["/orders"], dict)
+    paths["/orders"]["get"]["operationId"] = "getOrdersHistory"  # type: ignore[index,call-overload]
+    paths["/unknown"] = {
+        "get": {"operationId": "unknown", "schema": {"$ref": "#/components/schemas/Order"}}
+    }
+    paths["/missing"] = {"get": {"schema": {"$ref": "#/components/schemas/Order"}}}
+    after = copy.deepcopy(before)
+    after["components"]["schemas"]["Order"]["type"] = "string"  # type: ignore[index,call-overload]
+    report = check.make_report(
+        json.dumps(before).encode(), json.dumps(after).encode(), include_impact=True
+    )
+    impact = report["impact"]
+    assert isinstance(impact, dict) and isinstance(impact["changes"], list)
+    entry = impact["changes"][0]
+    assert isinstance(entry, dict) and isinstance(entry["endpoints"], list)
+    assert entry["unmapped"] is True
+    assert entry["python_types"]
+    endpoints = {
+        endpoint["endpoint"]: endpoint
+        for endpoint in entry["endpoints"]
+        if isinstance(endpoint, dict)
+    }
+    assert endpoints["GET /orders"]["unmapped_operation_ids"] == []
+    assert endpoints["GET /unknown"]["unmapped_operation_ids"] == ["unknown"]
+    assert endpoints["GET /missing"]["unmapped_operation_ids"] == ["(missing)"]
+
+
+def test_impact_percent_encoded_pointer_fragment() -> None:
+    before = check.parse_contract(SIMPLE)
+    paths = before["paths"]
+    assert isinstance(paths, dict)
+    paths["/encoded"] = {
+        "get": {
+            "operationId": "getOrdersHistory",
+            "schema": {"$ref": "#/components/schemas/A%20B+%7E1C~0D%252F"},
+        }
+    }
+    components = before["components"]
+    assert isinstance(components, dict) and isinstance(components["schemas"], dict)
+    components["schemas"]["A B+/C~D%2F"] = {"type": "string"}
+    after = copy.deepcopy(before)
+    after["components"]["schemas"]["A B+/C~D%2F"]["type"] = "integer"  # type: ignore[index,call-overload]
+    report = check.make_report(
+        json.dumps(before).encode(), json.dumps(after).encode(), include_impact=True
+    )
+    impact = report["impact"]
+    assert isinstance(impact, dict) and isinstance(impact["changes"], list)
+    entry = impact["changes"][0]
+    assert isinstance(entry, dict) and isinstance(entry["endpoints"], list)
+    assert any(
+        isinstance(endpoint, dict) and endpoint["endpoint"] == "GET /encoded"
+        for endpoint in entry["endpoints"]
+    )
