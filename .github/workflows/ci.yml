@@ -58,11 +58,5 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
-      - run: uv build
-      - name: Smoke-test installed wheel
-        shell: bash
-        run: |
-          uv venv /tmp/exness-wheel
-          uv pip install --python /tmp/exness-wheel/bin/python dist/*.whl
-          cd /tmp
-          /tmp/exness-wheel/bin/python -c 'from exness import AsyncExnessClient, ExnessClient, StreamOptions, StreamGap, TickStreamOptions; from exness.events import HmrSnapshot; from importlib.resources import files; assert StreamOptions is TickStreamOptions; assert StreamOptions().max_reconnects == 0; assert all(hasattr(AsyncExnessClient, name) for name in ("stream_ticks", "stream_trading", "stream_account_state", "stream_instruments", "stream_hmr")); assert files("exness").joinpath("py.typed").is_file()'
+      - name: Verify installed wheel consumers and typing
+        run: sh tools/check-installed.sh

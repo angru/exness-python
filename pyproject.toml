@@ -50,7 +50,7 @@ dev = [
 packages = ["src/exness"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/TRADING_WRITES.md", "/API_REVIEW.md", "/RESPONSE_VALIDATION.md", "/PARITY.md", "/PERFORMANCE.md", "/RELEASE.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
+include = ["/src", "/tests", "/consumers", "/contracts", "/examples", "/tools", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/ROADMAP.md", "/TRADING_WRITES.md", "/API_REVIEW.md", "/RESPONSE_VALIDATION.md", "/PARITY.md", "/PERFORMANCE.md", "/CONSUMERS.md", "/RELEASE.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/uv.lock"]
 
 [tool.ruff]
 target-version = "py311"
@@ -62,7 +62,7 @@ select = ["E", "F", "I", "UP", "B", "ANN", "RUF", "SIM", "C4", "PGH"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests", "examples", "tools"]
+files = ["src", "tests", "examples", "tools", "consumers/consumer.py"]
 plugins = ["pydantic.mypy"]
 warn_unreachable = true
 

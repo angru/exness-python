@@ -82,13 +82,14 @@ See [TRADING_WRITES.md](TRADING_WRITES.md) for the shared design and acceptance 
 
 Stages 1–4 do not require live access. Registry publication remains deferred.
 
-## Next: offline robustness and consumer verification
+<a id="next-offline-robustness-and-consumer-verification"></a>
 
-The initial feature plan is complete offline; live access does not block this
-follow-up work. Complete the following work packages in order in both SDKs. Track
-each package with a repository issue and link its verified implementation before
-marking it complete. No live requests, automatic write retries or releases are
-part of this plan.
+## Completed: offline robustness and consumer verification
+
+All five follow-up work packages are implemented and verified offline in both
+SDKs. The linked issues record implementation and check evidence. No live requests,
+automatic write retries or releases were part of this work. The table retains
+the agreed acceptance criteria; new work should be tracked separately.
 
 | Order | Work package | Acceptance criteria |
 | --- | --- | --- |
@@ -102,7 +103,7 @@ part of this plan.
 - [x] 2. [Decoder fuzzing and generated event sequences](https://github.com/angru/exness-python/issues/2).
 - [x] 3. [Automated fixture and behavioral parity checks](https://github.com/angru/exness-python/issues/3).
 - [x] 4. [Local lifecycle stress and reproducible benchmarks](https://github.com/angru/exness-python/issues/4).
-- [ ] 5. [Installed-package checks and current public API documentation](https://github.com/angru/exness-python/issues/5).
+- [x] 5. [Installed-package checks and current public API documentation](https://github.com/angru/exness-python/issues/5).
 
 Cross-SDK comparison now covers 46 shared files, 170 decoder outcomes and 49
 recovery checkpoints, with a pinned-peer CI job in each repository. See
@@ -111,6 +112,10 @@ recovery checkpoints, with a pinned-peer CI job in each repository. See
 Six-cycle TLS lifecycle checks and four parsing/signing benchmarks are now
 implemented in both SDKs. See [PERFORMANCE.md](PERFORMANCE.md) for resource
 accounting, finite test budgets, commands and initial measurements.
+
+Isolated Python-wheel and independent Go-module consumers now exercise the
+current submission/wait APIs and typing. See [CONSUMERS.md](CONSUMERS.md) and the
+updated [API_REVIEW.md](API_REVIEW.md); historical alpha-7 tags are unchanged.
 
 The first audit fixed uint64 overflow and related critical-field inconsistencies.
 See [RESPONSE_VALIDATION.md](RESPONSE_VALIDATION.md) for the implemented rules and

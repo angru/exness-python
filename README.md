@@ -587,3 +587,9 @@ It runs in a separate CI job and adds no peer dependency to normal builds or SDK
 See [PERFORMANCE.md](PERFORMANCE.md) for bounded local TLS stress checks, resource
 cleanup assertions, reproducible parsing/signing measurements and their limits.
 These checks require no live credentials and apply no CI speed thresholds.
+
+## Installed and independent consumers
+
+[CONSUMERS.md](CONSUMERS.md) describes the isolated Python-wheel and independent
+Go-module checks used in CI, including public types, submissions and result waiting.
+They use synthetic transports and do not publish packages or contact live accounts.

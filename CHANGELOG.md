@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Verify current submission/wait APIs from an installed Python wheel and an
+  independent Go module, including negative typing checks and synthetic requests.
+- Update the current-main API review to 18 paired Python entry points, submission
+  request types and operation errors while preserving historical alpha-7 scope.
+
 - Add six-cycle local TLS stress checks for concurrent REST cancellation, bounded
   WebSocket reconnects and concurrent stream shutdown, with resource accounting.
 - Add reproducible snapshot/tick parsing and GET/POST signing benchmarks, smoke
