@@ -4,6 +4,44 @@ permissions:
   contents: read
 
 jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: python-sdk
+      - name: Read pinned Go revision
+        id: peer
+        run: python3 -c 'import json; print("revision=" + json.load(open("python-sdk/tools/parity-peer.json"))["revision"])' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: angru/exness-go
+          ref: ${{ steps.peer.outputs.revision }}
+          path: go-sdk
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - run: uv sync --locked
+        working-directory: python-sdk
+      - run: go mod download
+        working-directory: go-sdk
+      - name: Compare shared fixtures and actual SDK results
+        env:
+          UV_OFFLINE: "1"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          PEER_REVISION: ${{ steps.peer.outputs.revision }}
+        run: >-
+          python3 python-sdk/tools/check_parity.py
+          --python-root python-sdk --go-root go-sdk
+          --peer go --peer-revision "$PEER_REVISION"
+
   check:
     runs-on: ubuntu-latest
     strategy:
