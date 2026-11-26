@@ -165,6 +165,7 @@ syntax; response identity comparison is numeric so leading zeros remain usable.
 Add `--impact` to include offline SDK review hints in text and JSON reports. The
 manual workflow includes them. Changes are attributed through local references
 on either contract side, including path parameters; external references are not
-followed. The deliberately small Python/Go mapping is maintained in
-`tools/contract_impact.py`, and missing mappings remain explicit. These hints,
+followed. Local JSON Pointer fragments are percent-decoded before pointer unescaping.
+The deliberately small Python/Go mapping is maintained in `tools/contract_impact.py`;
+a change is flagged as unmapped if any affected operation lacks a mapping. These hints,
 including documentation changes, do not establish runtime impact or compatibility.
