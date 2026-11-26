@@ -66,12 +66,15 @@ absent status or from `OperationStatus.IsTerminal` alone.
 Fixed: Python now refuses new work as soon as `aclose()` starts, before awaiting
 socket cleanup. A deterministic regression holds socket closure open while trying
 new REST, stream and context-manager entry operations.
+Subsequent hardening also interrupts owned stream discovery, handshake and backoff
+waits, including discovery lock waiters. A connection that opens concurrently with
+shutdown is closed; caller cancellation still propagates unchanged.
 
 Retained contracts: break a Go iterator to clean up; Python async generators need
-`contextlib.aclosing` on early exit. Close Python clients after canceling/awaiting
-active consumer tasks; closing sockets does not interrupt arbitrary consumer code
-or promise cancellation of pending discovery/handshake/backoff tasks. Go `Close`
-cancels owned stream contexts (including these waits); in-flight REST may finish.
+`contextlib.aclosing` on early exit. Python closure interrupts SDK stream waits,
+but does not cancel consumer tasks or arbitrary code processing a yielded event.
+Await consumers to finish cleanup; cancel/await independent REST tasks before
+closing. Go `Close` cancels owned stream contexts; in-flight REST may finish.
 Python asyncio clients belong to one event loop; Go clients support concurrent use.
 
 Transactions and HMR require fresh snapshots before deltas on each connection.
@@ -85,8 +88,8 @@ submission or exactly-once delivery is provided. See README for cache rules.
   default timeout/message limits and zero reconnects for no retries. Configure
   `OpenTimeout`/`open_timeout` separately from REST timeouts.
 - Python HTTPX timeouts bound individual network phases; Go's HTTP timeout bounds
-  the entire REST request. Go caps REST response bodies at 16 MiB; Python currently
-  buffers REST responses without a fixed SDK body cap. Streaming message limits
+  the entire REST request. Both SDKs cap REST response bodies at 16 MiB; Python
+  counts decoded bytes, including compressed and error responses. Streaming message limits
   are shared (64 KiB default, configurable through 16 MiB).
 - Python response models preserve unknown fields and validate many enums; Go drops
   unknown fields and retains many nested enum strings, with essential-field checks.

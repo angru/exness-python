@@ -121,9 +121,13 @@ Failed or cancelled discovery releases its lock and does not replace the cache.
 without cancelling another task's discovery. HTTPX's `timeout` is a timeout for
 individual network phases, not an overall operation deadline; use
 `asyncio.timeout(...)` to bound discovery waiting and a complete call or iteration.
+Both REST clients limit each decoded response body to 16 MiB, including discovery
+and error responses. Exceeding the limit raises `ProtocolError` and closes the
+response without reading the remaining body; compressed responses are counted
+after decompression, independently of `Content-Length`.
 
 The client owns its HTTP pool and any injected `httpx.AsyncBaseTransport`. Use
-`async with` or `await client.aclose()`; cancel and await active tasks before closing.
+`async with` or `await client.aclose()`; cancel and await active REST tasks before closing.
 `TaskGroup` does this for sibling tasks when one fails. History generators do not
 prefetch pages; early termination makes no extra request. Use `contextlib.aclosing`
 when explicitly managing a partially consumed generator. Async REST supports
@@ -176,9 +180,12 @@ Normal close (1000) ends iteration. Other close codes, including policy violatio
 (1008) and oversized messages (1009), raise `StreamClosed`. HTTP handshake failures
 (including 429/503), invalid TLS certificates and subscription errors are terminal.
 Exhausted reconnect budgets raise `TransportError`. Task cancellation propagates
-unchanged, including during backoff. Use `aclosing` for early breaks; closing the
-client also closes active WebSocket connections. Cancel and await active tasks
-before closing the client, as with async REST.
+unchanged, including during backoff. Use `aclosing` for early breaks. Closing the
+client closes active WebSocket connections and interrupts stream discovery
+(including lock waits), handshakes and reconnect backoff with a closed-client
+`RuntimeError`. It does not cancel the consumer task or code processing a yielded
+event. Await consumers to finish their cleanup; cancel active REST tasks before
+closing the client.
 
 The default message limit is 64 KiB (configurable up to 16 MiB), with a 16-frame
 receive queue and transport backpressure. Slow consumers are not given an unbounded

@@ -13,6 +13,7 @@ import httpx
 from websockets.asyncio.client import ClientConnection
 
 from exness._common import (
+    _append_response_chunk,
     _candle_params,
     _configuration,
     _continuation,
@@ -59,6 +60,7 @@ from exness.trading import TradingEvent, TradingStreamGap, TradingStreamOptions,
 
 ModelT = TypeVar("ModelT", bound=APIModel)
 ItemT = TypeVar("ItemT")
+ResultT = TypeVar("ResultT")
 
 
 async def _iterate(
@@ -82,7 +84,7 @@ class AsyncExnessClient:
 
     The client owns its HTTP connection pool. Use an async context manager or await aclose().
     Share only among tasks in one asyncio event loop; do not use across threads.
-    Cancel and await active tasks before closing the client.
+    Closure interrupts stream waits; cancel and await active REST tasks before closing.
     A custom transport is useful for tests; it is also closed with the client.
     """
 
@@ -101,6 +103,7 @@ class AsyncExnessClient:
         self._access_point: str | None = None
         self._discovery_lock = asyncio.Lock()
         self._closing = False
+        self._stream_tasks: set[asyncio.Task[object]] = set()
         self._ws_connections: set[ClientConnection] = set()
         self._http = httpx.AsyncClient(
             timeout=timeout, follow_redirects=False, trust_env=False, transport=transport
@@ -122,6 +125,10 @@ class AsyncExnessClient:
         # Refuse new work before the first await, including during socket cleanup.
         self._closing = True
         try:
+            tasks = tuple(self._stream_tasks)
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
             await asyncio.gather(
                 *(connection.close() for connection in tuple(self._ws_connections))
             )
@@ -131,6 +138,28 @@ class AsyncExnessClient:
     def _ensure_open(self) -> None:
         if self._closing or self._http.is_closed:
             raise RuntimeError("AsyncExnessClient is closed")
+
+    async def _stream_wait(self, operation: Callable[[], Awaitable[ResultT]]) -> ResultT:
+        """Own only the SDK wait, never the task consuming a yielded event."""
+        self._ensure_open()
+
+        async def run() -> ResultT:
+            return await operation()
+
+        task = asyncio.create_task(run())
+        self._stream_tasks.add(task)
+        try:
+            try:
+                result = await task
+            except asyncio.CancelledError:
+                consumer = asyncio.current_task()
+                if consumer is not None and not consumer.cancelling():
+                    self._ensure_open()
+                raise
+            self._ensure_open()
+            return result
+        finally:
+            self._stream_tasks.discard(task)
 
     async def _get(
         self,
@@ -143,10 +172,16 @@ class AsyncExnessClient:
         request = self._http.build_request("GET", base_url + path, params=params)
         request.headers.update(self._signer.get_headers(request.url.raw_path.decode("ascii")))
         try:
-            response = await self._http.send(request)
+            response = await self._http.send(request, stream=True)
+            try:
+                body = bytearray()
+                async for chunk in response.aiter_bytes():
+                    _append_response_chunk(body, chunk)
+                return _response(response, model, body)
+            finally:
+                await response.aclose()
         except httpx.RequestError:
             raise TransportError("Exness request failed at the transport layer") from None
-        return _response(response, model)
 
     async def discover(self, *, refresh: bool = False) -> str:
         """Resolve and cache the account Access Point; refresh explicitly after migration."""

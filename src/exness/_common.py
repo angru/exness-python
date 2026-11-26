@@ -24,6 +24,13 @@ from exness.models import (
 
 ModelT = TypeVar("ModelT", bound=APIModel)
 ItemT = TypeVar("ItemT")
+_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
+
+
+def _append_response_chunk(body: bytearray, chunk: bytes) -> None:
+    if len(body) + len(chunk) > _MAX_RESPONSE_BYTES:
+        raise ProtocolError("REST response exceeds 16 MiB")
+    body.extend(chunk)
 
 
 def _base_url(value: str) -> str:
@@ -100,12 +107,12 @@ def _configuration(account_id: str, discovery_url: str, timeout: float) -> str:
     return _base_url(discovery_url)
 
 
-def _response(response: httpx.Response, model: type[ModelT]) -> ModelT:
+def _response(response: httpx.Response, model: type[ModelT], body: bytearray) -> ModelT:
     if response.status_code != 200:
         code: int | None = None
         message: str | None = None
         try:
-            error = PublicError.model_validate_json(response.content)
+            error = PublicError.model_validate_json(body)
             code, message = error.code, error.error_message
         except ValidationError:
             pass
@@ -116,7 +123,7 @@ def _response(response: httpx.Response, model: type[ModelT]) -> ModelT:
             retry_after=response.headers.get("Retry-After"),
         )
     try:
-        return model.model_validate_json(response.content)
+        return model.model_validate_json(body)
     except ValidationError:
         raise ProtocolError(f"Invalid {model.__name__} response") from None
 

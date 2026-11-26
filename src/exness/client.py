@@ -10,6 +10,7 @@ from typing import Self, TypeVar
 import httpx
 
 from exness._common import (
+    _append_response_chunk,
     _candle_params,
     _configuration,
     _continuation,
@@ -113,10 +114,16 @@ class ExnessClient:
         request = self._http.build_request("GET", base_url + path, params=params)
         request.headers.update(self._signer.get_headers(request.url.raw_path.decode("ascii")))
         try:
-            response = self._http.send(request)
+            response = self._http.send(request, stream=True)
+            try:
+                body = bytearray()
+                for chunk in response.iter_bytes():
+                    _append_response_chunk(body, chunk)
+                return _response(response, model, body)
+            finally:
+                response.close()
         except httpx.RequestError:
             raise TransportError("Exness request failed at the transport layer") from None
-        return _response(response, model)
 
     def discover(self, *, refresh: bool = False) -> str:
         """Resolve and cache the account Access Point; refresh explicitly after migration."""

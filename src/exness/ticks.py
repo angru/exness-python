@@ -8,13 +8,15 @@ import logging
 import math
 import re
 import ssl
-from collections.abc import AsyncGenerator, Callable, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, TypeVar
 from uuid import uuid4
 
 from pydantic import ValidationError
-from websockets.asyncio.client import connect
+from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
 
 from exness.errors import APIError, ProtocolError, StreamClosed, TransportError, WebSocketAPIError
@@ -109,6 +111,29 @@ def _tick(message: str | bytes, instruments: tuple[str, ...], request_id: str) -
 EventT = TypeVar("EventT")
 
 
+@asynccontextmanager
+async def _connection(
+    client: AsyncExnessClient, connector: connect
+) -> AsyncIterator[ClientConnection]:
+    websocket: ClientConnection | None = None
+
+    async def open_connection() -> ClientConnection:
+        nonlocal websocket
+        websocket = await connector
+        client._ws_connections.add(websocket)
+        return websocket
+
+    try:
+        yield await client._stream_wait(open_connection)
+    finally:
+        # Also own a connection that completed just as the caller or client closed.
+        if websocket is not None:
+            try:
+                await websocket.close()
+            finally:
+                client._ws_connections.discard(websocket)
+
+
 def stream_ticks(
     client: AsyncExnessClient,
     instruments: Sequence[str],
@@ -139,7 +164,7 @@ async def _stream(
     path = f"/v1/server-events/accounts/{client._account_id}/ws/{endpoint}"
     while True:
         client._ensure_open()
-        host = await client.discover()
+        host = await client._stream_wait(client.discover)
         request_id = str(uuid4())
         subscription = json.dumps(
             {"id": request_id, "subscribe": subscribe},
@@ -150,7 +175,7 @@ async def _stream(
         decode = decoder_factory(request_id)
         code: int | None = None
         try:
-            async with _NoRedirectConnect(
+            connector = _NoRedirectConnect(
                 "wss://" + host.removeprefix("https://") + path,
                 additional_headers=client._signer.get_headers(path),
                 proxy=None,
@@ -163,18 +188,14 @@ async def _stream(
                 ping_timeout=20,
                 max_size=options.max_message_bytes,
                 max_queue=16,
-            ) as websocket:
-                client._ensure_open()
-                client._ws_connections.add(websocket)
-                try:
-                    await websocket.send(subscription)
-                    while True:
-                        client._ensure_open()
-                        message = await websocket.recv()
-                        client._ensure_open()
-                        yield decode(message)
-                finally:
-                    client._ws_connections.discard(websocket)
+            )
+            async with _connection(client, connector) as websocket:
+                await websocket.send(subscription)
+                while True:
+                    client._ensure_open()
+                    message = await websocket.recv()
+                    client._ensure_open()
+                    yield decode(message)
         except InvalidStatus as error:
             raise APIError(
                 error.response.status_code, retry_after=error.response.headers.get("Retry-After")
@@ -196,5 +217,5 @@ async def _stream(
             ) from None
         attempts += 1
         yield TickStreamGap(attempts, delay, code)
-        await asyncio.sleep(delay)
+        await client._stream_wait(partial(asyncio.sleep, delay))
         delay = min(delay * 2, options.max_reconnect_delay)

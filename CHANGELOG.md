@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Limit sync and async REST response bodies to 16 MiB after decompression,
+  including error responses; close oversized responses without draining them.
+- Interrupt WebSocket discovery, handshake and reconnect waits on client closure,
+  without cancelling consumer tasks. Preserve caller cancellation and clean up
+  sockets opened concurrently with shutdown.
+- Add offline response-boundary and TLS lifecycle regression tests.
+
 ## 0.1.0a7 — 2026-11-19
 
 - Review and document the public API, cross-language differences and alpha limits.
