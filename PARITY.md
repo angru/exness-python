@@ -105,8 +105,9 @@ verify the synthetic signature against the received request target.
 | `trading_recovery` | Snapshot, partial-close transaction, one gap for close `1012`, a fresh snapshot with a different balance, and a balance transaction. Close `1000` ends the stream normally. |
 | `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
 | `lost_ack` | Signed discovery, then one signed open-position POST for EURUSD, buy, volume `0.01`. The fixture reads the complete bounded body and closes the connection without sending an HTTP response. Both SDKs return `UnknownOutcomeError` with the original synthetic idempotency key, account, method and path. |
+| `lost_ack_recovery` | Each client submits one open-position POST and uses the key preserved by `UnknownOutcomeError` to correlate a terminal result from a fresh transactions subscription. The snapshot leaves the result unset, the foreign success is ignored, and the matching rejection is selected. |
 
-Each transaction-stream scenario expects one signed discovery and two signed upgrades to the
+The reconnect scenarios expect one signed discovery and two signed upgrades to the
 events endpoint. Both subscriptions must select `transactions` and use distinct
 nonempty request IDs. Each client's transcript is checked against the expected
 paths, subscription payloads, event order, selected values and outcome, then
@@ -121,6 +122,20 @@ order fields and counts POSTs separately for each client, including duplicate
 attempts. The report includes the verified receipt, POST count and error identity.
 It excludes the raw body, signed headers and underlying error causes. Both
 transcripts must match the fixed expectations and each other.
+
+`lost_ack_recovery` keeps the same HTTP receipt and error checks active through
+the WSS phase, so any replay makes the scenario fail. A second client for the same
+synthetic account discovers the separate WSS fixture through its own loopback
+URL. The fixture requires the verified POST receipt before accepting signed
+stream discovery, then checks for a single fresh `transactions` subscription.
+The consumers build key-only `OperationReference` values from the error and
+call `matches_event` or `MatchesEvent` on each transaction. The stream sends a
+snapshot, a successful transaction with a foreign key, and a rejection carrying
+the caller key. It then closes normally. The report records each transaction
+decision and the selection state after each event, including the empty
+selection before the matching transaction. Receipt, error identity, stream
+observations and POST count must satisfy the scenario's fixed expectations and
+agree across SDKs.
 
 Use Go 1.26 and a clean Go checkout at the full SHA recorded in
 `tools/parity-peer.json`. Prepare dependencies with `go mod download` in that
@@ -138,7 +153,7 @@ and cleanliness before and after the check, builds the consumer in a temporary
 module against the supplied checkout, and disables Go module fetching during
 the build. Loopback socket binding is required. The command exits nonzero for
 checkout, build, transport or transcript failures. The Python parity job checks
-the Go consumer with `gofmt` and runs all four scenarios in its existing loopback
+the Go consumer with `gofmt` and runs all five scenarios in its existing loopback
 TLS step against the pinned Go checkout.
 
 ## CI and updating a compatible pair

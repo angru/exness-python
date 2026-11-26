@@ -28,6 +28,7 @@ class Scenario(StrEnum):
     TRADING_RECOVERY = "trading_recovery"
     TRADING_MISSING_SNAPSHOT = "trading_missing_snapshot"
     LOST_ACK = "lost_ack"
+    LOST_ACK_RECOVERY = "lost_ack_recovery"
 
 
 EXPECTED_TICKS = {
@@ -53,6 +54,25 @@ TRADING_WIRE = {
     "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
     "subscriptions": [{"event": "transactions"}, {"event": "transactions"}],
 }
+LOST_ACK_WIRE = {
+    "paths": [DISCOVERY_PATH, POSITIONS_PATH],
+    "post_count": 1,
+    "receipt": {
+        "method": "POST",
+        "path": POSITIONS_PATH,
+        "order": OPEN_ORDER,
+        "signature_verified": True,
+        "idempotency_key": WRITE_KEY,
+        "acknowledgement_sent": False,
+    },
+    "outcome": {
+        "error": "UnknownOutcomeError",
+        "method": "POST",
+        "path": POSITIONS_PATH,
+        "account_id": ACCOUNT,
+        "idempotency_key": WRITE_KEY,
+    },
+}
 EXPECTED: dict[Scenario, dict[str, object]] = {
     Scenario.REST_TICKS: EXPECTED_TICKS,
     Scenario.TRADING_RECOVERY: {
@@ -76,24 +96,25 @@ EXPECTED: dict[Scenario, dict[str, object]] = {
         "events": TRADING_START,
         "outcome": "ProtocolError",
     },
-    Scenario.LOST_ACK: {
-        "paths": [DISCOVERY_PATH, POSITIONS_PATH],
-        "post_count": 1,
-        "receipt": {
-            "method": "POST",
-            "path": POSITIONS_PATH,
-            "order": OPEN_ORDER,
-            "signature_verified": True,
-            "idempotency_key": WRITE_KEY,
-            "acknowledgement_sent": False,
-        },
-        "outcome": {
-            "error": "UnknownOutcomeError",
-            "method": "POST",
-            "path": POSITIONS_PATH,
-            "account_id": ACCOUNT,
-            "idempotency_key": WRITE_KEY,
-        },
+    Scenario.LOST_ACK: LOST_ACK_WIRE,
+    Scenario.LOST_ACK_RECOVERY: {
+        **LOST_ACK_WIRE,
+        "stream_paths": [DISCOVERY_PATH, TRADING_PATH],
+        "subscriptions": [{"event": "transactions"}],
+        "events": [
+            {**TRADING_START[0], "selected": None},
+            {**TRADING_START[1], "decision": "ignored", "selected": None},
+            {
+                "kind": "transaction",
+                "operation_id": "789",
+                "status": "rejected",
+                "positions": 0,
+                "deals": 0,
+                "account_state": None,
+                "decision": "selected",
+                "selected": {"operation_id": "789", "status": "rejected"},
+            },
+        ],
     },
 }
 
