@@ -162,3 +162,7 @@ Worker Board completed implementation, verification and independent review for e
 ## Open: contract impact triage
 
 - [ ] [Review SDK impact of OpenAPI drift](https://github.com/angru/exness-python/issues/10).
+
+## Open: cross-SDK transport check
+
+- [ ] [Compare public clients against one local TLS listener](https://github.com/angru/exness-python/issues/14).
