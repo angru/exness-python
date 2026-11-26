@@ -16,6 +16,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import aclosing, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from http import HTTPStatus
 from ipaddress import IPv4Address
 from pathlib import Path
@@ -29,10 +30,27 @@ from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 from websockets.http11 import Request, Response
 
-from exness import AsyncExnessClient, Credentials, ExnessError, ProtocolError, StreamOptions
+from exness import (
+    AsyncExnessClient,
+    Credentials,
+    ExnessError,
+    ProtocolError,
+    StreamOptions,
+    TradingStreamGap,
+)
 from exness.models import Tick
+from exness.trading import TradingEvent, TradingSnapshotEvent, TransactionEvent
 from tools.check_parity import ParityError, verify_peer
-from tools.transport_transcript import compare_transcripts, verify_request
+from tools.transport_transcript import (
+    ACCOUNT,
+    ACCOUNT_PATH,
+    DISCOVERY_PATH,
+    TICKS_PATH,
+    TRADING_PATH,
+    Scenario,
+    compare_transcripts,
+    verify_request,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests/fixtures"
@@ -40,11 +58,7 @@ VECTOR = FIXTURES / "signing-vector.json"
 GO_DRIVER = ROOT / "tools/transport_driver.go"
 GO_MODULE = "github.com/angru/exness-go"
 LOOPBACK = "127.0.0.1"
-ACCOUNT = "123456"
 INSTRUMENT = "EURUSD"
-DISCOVERY_PATH = f"/v1/trading/access-point?account_id={ACCOUNT}"
-ACCOUNT_PATH = f"/v1/configuration/accounts/{ACCOUNT}/account"
-TICKS_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/ticks"
 SIGNED_HEADERS = ("exn-data", "exn-sign", "exn-idempotency-key")
 IO_TIMEOUT = 3
 PEER_TIMEOUT = 15
@@ -57,10 +71,21 @@ class CheckError(Exception):
 
 @dataclass
 class WireTranscript:
+    scenario: Scenario
     paths: list[str] = field(default_factory=list)
-    subscription: object = None
+    subscriptions: list[object] = field(default_factory=list)
+    subscription_ids: set[str] = field(default_factory=set)
+    completed: int = 0
     closed: asyncio.Event = field(default_factory=asyncio.Event)
     failure: str | None = None
+
+    @property
+    def upgrade_path(self) -> str:
+        return TICKS_PATH if self.scenario is Scenario.REST_TICKS else TRADING_PATH
+
+    @property
+    def expected_connections(self) -> int:
+        return 1 if self.scenario is Scenario.REST_TICKS else 2
 
 
 class FixtureServer:
@@ -69,6 +94,14 @@ class FixtureServer:
         self.active: WireTranscript | None = None
         self.account = (FIXTURES / "account.json").read_text(encoding="utf-8")
         self.tick = (FIXTURES / "tick.json").read_text(encoding="utf-8")
+        self.snapshot = (FIXTURES / "trading_snapshot.json").read_text(encoding="utf-8")
+        self.partial_close = (FIXTURES / "transaction_partial_close.json").read_text(
+            encoding="utf-8"
+        )
+        self.balance = (FIXTURES / "transaction_balance.json").read_text(encoding="utf-8")
+        replacement = json.loads(self.snapshot)
+        replacement["payload"]["account_state"]["balance"] = "12345678901234567790.113456789"
+        self.replacement_snapshot = json.dumps(replacement)
 
     def process_request(self, ws: ServerConnection, request: Request) -> Response | None:
         wire = self.active
@@ -79,7 +112,7 @@ class FixtureServer:
         except CheckError as error:
             wire.failure = wire.failure or str(error)
             return ws.respond(HTTPStatus.BAD_REQUEST, "Unexpected request")
-        if request.path == TICKS_PATH:
+        if request.path == wire.upgrade_path:
             return None
         body = self.account
         if request.path == DISCOVERY_PATH:
@@ -90,14 +123,17 @@ class FixtureServer:
         return response
 
     def record_request(self, wire: WireTranscript, request: Request) -> None:
-        if request.path not in (DISCOVERY_PATH, ACCOUNT_PATH, TICKS_PATH):
+        limits = {DISCOVERY_PATH: 1, wire.upgrade_path: wire.expected_connections}
+        if wire.scenario is Scenario.REST_TICKS:
+            limits[ACCOUNT_PATH] = 2
+        if request.path not in limits:
             raise CheckError("unexpected request target")
-        if len(wire.paths) >= 4 or TICKS_PATH in wire.paths:
+        if wire.paths.count(request.path) >= limits[request.path]:
             raise CheckError("unexpected extra request")
         upgrade = request.headers.get_all("Upgrade")
-        if request.path == TICKS_PATH:
+        if request.path == wire.upgrade_path:
             if [value.lower() for value in upgrade] != ["websocket"]:
-                raise CheckError("ticks request missing WebSocket upgrade")
+                raise CheckError("stream request missing WebSocket upgrade")
         elif upgrade:
             raise CheckError("unexpected upgrade on REST request")
         if any(len(request.headers.get_all(name)) != 1 for name in SIGNED_HEADERS):
@@ -110,7 +146,7 @@ class FixtureServer:
             raise CheckError("invalid signature for received request") from None
         wire.paths.append(request.path)
 
-    async def handle_ticks(self, ws: ServerConnection) -> None:
+    async def handle_websocket(self, ws: ServerConnection) -> None:
         wire = self.active
         if wire is None:
             return
@@ -127,24 +163,41 @@ class FixtureServer:
                     or not request["id"]
                 ):
                     raise CheckError("invalid subscription envelope")
-                wire.subscription = request["subscribe"]
-                await ws.send(self.tick)
-                await ws.send("{")
-            # Keep the connection open until the client handles the malformed
-            # message and closes it. A second subscription is a scenario failure.
-            async with asyncio.timeout(IO_TIMEOUT):
-                try:
-                    await ws.recv()
-                except ConnectionClosed:
-                    pass
-                else:
-                    raise CheckError("unexpected extra WebSocket message")
+                if request["id"] in wire.subscription_ids:
+                    raise CheckError("reused subscription ID")
+                wire.subscription_ids.add(request["id"])
+                wire.subscriptions.append(request["subscribe"])
+                await self.exchange(ws, wire)
         except (ValueError, ConnectionClosed, TimeoutError):
             wire.failure = wire.failure or "WebSocket fixture exchange did not complete"
         except CheckError as error:
             wire.failure = wire.failure or str(error)
         finally:
-            wire.closed.set()
+            wire.completed += 1
+            if wire.completed == wire.expected_connections:
+                wire.closed.set()
+
+    async def exchange(self, ws: ServerConnection, wire: WireTranscript) -> None:
+        if wire.scenario is Scenario.REST_TICKS:
+            await ws.send(self.tick)
+            await ws.send("{")
+        elif len(wire.subscriptions) == 1:
+            await ws.send(self.snapshot)
+            await ws.send(self.partial_close)
+            await ws.close(code=1012)
+        elif wire.scenario is Scenario.TRADING_RECOVERY:
+            await ws.send(self.replacement_snapshot)
+            await ws.send(self.balance)
+            await ws.close(code=1000)
+        else:
+            await ws.send(self.balance)
+        # Check for extra messages even on server-initiated closes. For an
+        # invalid event sequence, wait for the client to close the connection.
+        try:
+            await ws.recv()
+        except ConnectionClosed:
+            return
+        raise CheckError("unexpected extra WebSocket message")
 
 
 def make_tls(directory: Path) -> tuple[ssl.SSLContext, ssl.SSLContext, Path]:
@@ -178,7 +231,7 @@ def make_tls(directory: Path) -> tuple[ssl.SSLContext, ssl.SSLContext, Path]:
     return server, client, cert_path
 
 
-async def run_python(origin: str, tls: ssl.SSLContext) -> dict[str, object]:
+async def run_python(origin: str, tls: ssl.SSLContext, scenario: Scenario) -> dict[str, object]:
     vector = json.loads(VECTOR.read_text(encoding="utf-8"))
     try:
         async with AsyncExnessClient(
@@ -188,26 +241,80 @@ async def run_python(origin: str, tls: ssl.SSLContext) -> dict[str, object]:
             timeout=IO_TIMEOUT,
             transport=httpx.AsyncHTTPTransport(verify=tls, trust_env=False),
         ) as client:
-            accounts = [(await client.get_account()).account_id for _ in range(2)]
-            async with aclosing(
-                client.stream_ticks(
-                    [INSTRUMENT], options=StreamOptions(open_timeout=IO_TIMEOUT), ssl_context=tls
-                )
-            ) as stream:
-                tick = await anext(stream)
-                if not isinstance(tick, Tick):
-                    raise CheckError("expected a tick as the first stream event")
-                try:
-                    await anext(stream)
-                except ProtocolError:
-                    return {
-                        "accounts": accounts,
-                        "tick": {"instrument": tick.instrument, "bid": tick.bid, "ask": tick.ask},
-                        "error": "ProtocolError",
-                    }
-                raise CheckError("expected a protocol error after the first tick")
+            if scenario is Scenario.REST_TICKS:
+                return await run_python_ticks(client, tls)
+            return await run_python_trading(client, tls, scenario)
     except (ExnessError, StopAsyncIteration):
-        raise CheckError("SDK did not complete the account and tick scenario") from None
+        raise CheckError("SDK did not complete the scenario") from None
+
+
+async def run_python_ticks(client: AsyncExnessClient, tls: ssl.SSLContext) -> dict[str, object]:
+    accounts = [(await client.get_account()).account_id for _ in range(2)]
+    async with aclosing(
+        client.stream_ticks(
+            [INSTRUMENT], options=StreamOptions(open_timeout=IO_TIMEOUT), ssl_context=tls
+        )
+    ) as stream:
+        tick = await anext(stream)
+        if not isinstance(tick, Tick):
+            raise CheckError("expected a tick as the first stream event")
+        try:
+            await anext(stream)
+        except ProtocolError:
+            return {
+                "accounts": accounts,
+                "tick": {"instrument": tick.instrument, "bid": tick.bid, "ask": tick.ask},
+                "error": "ProtocolError",
+            }
+        raise CheckError("expected a protocol error after the first tick")
+
+
+def trading_observation(event: TradingEvent | TradingStreamGap) -> dict[str, object]:
+    if isinstance(event, TradingSnapshotEvent):
+        return {
+            "kind": "snapshot",
+            "balance": format(event.payload.account_state.balance, "f"),
+            "positions": len(event.payload.positions),
+        }
+    if isinstance(event, TransactionEvent):
+        account = event.payload.account_state
+        return {
+            "kind": "transaction",
+            "operation_id": event.operation_id,
+            "status": event.status,
+            "positions": len(event.payload.positions),
+            "deals": len(event.payload.deals),
+            "account_state": (
+                {"balance": format(account.balance, "f"), "leverage": account.leverage}
+                if account is not None
+                else None
+            ),
+        }
+    return {
+        "kind": "gap",
+        "reconnect_attempt": event.reconnect_attempt,
+        "close_code": event.close_code,
+    }
+
+
+async def run_python_trading(
+    client: AsyncExnessClient, tls: ssl.SSLContext, scenario: Scenario
+) -> dict[str, object]:
+    options = StreamOptions(
+        open_timeout=IO_TIMEOUT,
+        # A protocol error must stop recovery while a second retry is available.
+        max_reconnects=2 if scenario is Scenario.TRADING_MISSING_SNAPSHOT else 1,
+        reconnect_delay=0.01,
+    )
+    events: list[dict[str, object]] = []
+    outcome = "normal_close"
+    async with aclosing(client.stream_trading(options=options, ssl_context=tls)) as stream:
+        try:
+            async for event in stream:
+                events.append(trading_observation(event))
+        except ProtocolError:
+            outcome = "ProtocolError"
+    return {"events": events, "outcome": outcome}
 
 
 def build_go(command: str, peer: Path, directory: Path) -> Path:
@@ -260,12 +367,15 @@ def build_go(command: str, peer: Path, directory: Path) -> Path:
     return binary
 
 
-async def run_go(binary: Path, origin: str, certificate: Path) -> dict[str, object]:
+async def run_go(
+    binary: Path, origin: str, certificate: Path, scenario: Scenario
+) -> dict[str, object]:
     process = await asyncio.create_subprocess_exec(
         str(binary),
         origin,
         str(certificate),
         str(VECTOR),
+        scenario,
         env={},
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
@@ -283,20 +393,27 @@ async def run_go(binary: Path, origin: str, certificate: Path) -> dict[str, obje
         result = json.loads(output)
     except (ValueError, RecursionError):
         raise CheckError("Go consumer returned an invalid result") from None
-    if not isinstance(result, dict) or set(result) != {"accounts", "tick", "error"}:
+    fields = (
+        {"accounts", "tick", "error"} if scenario is Scenario.REST_TICKS else {"events", "outcome"}
+    )
+    if not isinstance(result, dict) or set(result) != fields:
         raise CheckError("Go consumer returned unexpected result fields")
     return result
 
 
 async def observe(
-    server: FixtureServer, label: str, driver: Callable[[], Awaitable[dict[str, object]]]
+    server: FixtureServer,
+    scenario: Scenario,
+    label: str,
+    driver: Callable[[], Awaitable[dict[str, object]]],
 ) -> dict[str, object]:
-    wire = WireTranscript()
+    wire = WireTranscript(scenario)
+    label = f"{scenario}: {label}"
     server.active = wire
     try:
         async with asyncio.timeout(PEER_TIMEOUT):
             result = await driver()
-            if TICKS_PATH not in wire.paths:
+            if wire.paths.count(wire.upgrade_path) != wire.expected_connections:
                 raise CheckError("missing WebSocket handshake")
             await wire.closed.wait()
     except TimeoutError:
@@ -307,7 +424,7 @@ async def observe(
         server.active = None
     if wire.failure:
         raise CheckError(f"{label}: {wire.failure}")
-    return {**result, "paths": wire.paths, "subscription": wire.subscription}
+    return {**result, "paths": wire.paths, "subscriptions": wire.subscriptions}
 
 
 async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
@@ -316,7 +433,7 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
     logger = logging.Logger("exness.transport_check")
     logger.disabled = True
     async with serve(
-        script.handle_ticks,
+        script.handle_websocket,
         LOOPBACK,
         0,
         ssl=server_tls,
@@ -330,10 +447,20 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
     ) as server:
         port = next(iter(server.sockets)).getsockname()[1]
         script.origin = f"https://{LOOPBACK}:{port}"
-        python = await observe(script, "Python", lambda: run_python(script.origin, client_tls))
-        go = await observe(script, "Go", lambda: run_go(binary, script.origin, certificate))
-        compare_transcripts(python, go)
-    return python
+        report: dict[str, object] = {}
+        for scenario in Scenario:
+            python = await observe(
+                script, scenario, "Python", partial(run_python, script.origin, client_tls, scenario)
+            )
+            go = await observe(
+                script,
+                scenario,
+                "Go",
+                partial(run_go, binary, script.origin, certificate, scenario),
+            )
+            compare_transcripts(scenario, python, go)
+            report[scenario] = python
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,4 +1,4 @@
-"""Validation primitives for the proposed cross-SDK transport scenario.
+"""Validation primitives for the cross-SDK transport scenarios.
 
 Only normalized, non-secret observations may be passed to compare_transcripts.
 """
@@ -6,24 +6,72 @@ Only normalized, non-secret observations may be passed to compare_transcripts.
 import base64
 import json
 from collections.abc import Mapping
-from typing import Any
+from enum import StrEnum
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 PUBLIC_KEY = bytes.fromhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
 EMPTY_HASH = "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
-EXPECTED: dict[str, Any] = {
-    "paths": [
-        "/v1/trading/access-point?account_id=123456",
-        "/v1/configuration/accounts/123456/account",
-        "/v1/configuration/accounts/123456/account",
-        "/v1/server-events/accounts/123456/ws/ticks",
-    ],
-    "subscription": {"event": "ticks", "instruments": ["EURUSD"]},
+ACCOUNT = "123456"
+DISCOVERY_PATH = f"/v1/trading/access-point?account_id={ACCOUNT}"
+ACCOUNT_PATH = f"/v1/configuration/accounts/{ACCOUNT}/account"
+TICKS_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/ticks"
+TRADING_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/events"
+
+
+class Scenario(StrEnum):
+    REST_TICKS = "rest_ticks"
+    TRADING_RECOVERY = "trading_recovery"
+    TRADING_MISSING_SNAPSHOT = "trading_missing_snapshot"
+
+
+EXPECTED_TICKS = {
+    "paths": [DISCOVERY_PATH, ACCOUNT_PATH, ACCOUNT_PATH, TICKS_PATH],
+    "subscriptions": [{"event": "ticks", "instruments": ["EURUSD"]}],
     "accounts": ["123456", "123456"],
     "tick": {"instrument": "EURUSD", "bid": 1.08321, "ask": 1.08331},
     "error": "ProtocolError",
+}
+TRADING_START = [
+    {"kind": "snapshot", "balance": "12345678901234567890.123456789", "positions": 1},
+    {
+        "kind": "transaction",
+        "operation_id": "790",
+        "status": "success",
+        "positions": 1,
+        "deals": 0,
+        "account_state": None,
+    },
+    {"kind": "gap", "reconnect_attempt": 1, "close_code": 1012},
+]
+TRADING_WIRE = {
+    "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
+    "subscriptions": [{"event": "transactions"}, {"event": "transactions"}],
+}
+EXPECTED: dict[Scenario, dict[str, object]] = {
+    Scenario.REST_TICKS: EXPECTED_TICKS,
+    Scenario.TRADING_RECOVERY: {
+        **TRADING_WIRE,
+        "events": [
+            *TRADING_START,
+            {"kind": "snapshot", "balance": "12345678901234567790.113456789", "positions": 1},
+            {
+                "kind": "transaction",
+                "operation_id": None,
+                "status": "success",
+                "positions": 0,
+                "deals": 1,
+                "account_state": {"balance": "12345678901234567890.123456789", "leverage": "100"},
+            },
+        ],
+        "outcome": "normal_close",
+    },
+    Scenario.TRADING_MISSING_SNAPSHOT: {
+        **TRADING_WIRE,
+        "events": TRADING_START,
+        "outcome": "ProtocolError",
+    },
 }
 
 
@@ -57,13 +105,18 @@ def verify_request(method: str, target: str, headers: Mapping[str, str]) -> None
         raise ValueError("Invalid signed request") from exc
 
 
-def compare_transcripts(python: Mapping[str, Any], go: Mapping[str, Any]) -> None:
+def compare_transcripts(
+    scenario: Scenario, python: dict[str, object], go: dict[str, object]
+) -> None:
     """Require each peer to satisfy the expected scenario as well as each other."""
+    expected = EXPECTED[scenario]
     for label, transcript in (("Python", python), ("Go", go)):
-        for field, expected in EXPECTED.items():
-            if transcript.get(field) != expected:
-                raise ValueError(f"{label} transcript mismatch: {field}")
-        if set(transcript) != set(EXPECTED):
-            raise ValueError(f"{label} transcript contains unexpected fields")
+        for field, value in expected.items():
+            if json.dumps(transcript.get(field), sort_keys=True) != json.dumps(
+                value, sort_keys=True
+            ):
+                raise ValueError(f"{scenario}: {label} transcript mismatch: {field}")
+        if set(transcript) != set(expected):
+            raise ValueError(f"{scenario}: {label} transcript contains unexpected fields")
     if python != go:
-        raise ValueError("Cross-SDK transcript mismatch")
+        raise ValueError(f"{scenario}: cross-SDK transcript mismatch")
