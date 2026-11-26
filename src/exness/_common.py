@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from exness.errors import APIError, ConfigurationError, ProtocolError
 from exness.models import (
     AccessPoint,
+    AckResponse,
     APIModel,
     CandlePriceType,
     CandleTimeframe,
@@ -107,8 +108,10 @@ def _configuration(account_id: str, discovery_url: str, timeout: float) -> str:
     return _base_url(discovery_url)
 
 
-def _response(response: httpx.Response, model: type[ModelT], body: bytearray) -> ModelT:
-    if response.status_code != 200:
+def _response(
+    response: httpx.Response, model: type[ModelT], body: bytearray, expected_status: int = 200
+) -> ModelT:
+    if response.status_code != expected_status:
         code: int | None = None
         message: str | None = None
         try:
@@ -126,6 +129,13 @@ def _response(response: httpx.Response, model: type[ModelT], body: bytearray) ->
         return model.model_validate_json(body)
     except ValidationError:
         raise ProtocolError(f"Invalid {model.__name__} response") from None
+
+
+def _ack_response(response: httpx.Response, body: bytearray, key: str) -> AckResponse:
+    ack = _response(response, AckResponse, body, expected_status=202)
+    if ack.client_request_id is not None and ack.client_request_id != key:
+        raise ProtocolError("Acknowledgement returned a different client request id")
+    return ack
 
 
 def _discovered_host(result: AccessPoint, account_id: str) -> str:

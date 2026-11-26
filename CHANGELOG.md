@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Implement all five trading submission methods with explicit idempotency keys,
+  exact signed bodies/queries and no automatic write retries.
+- Add limit/stop/SLTP, modification and closure request types; preserve PATCH
+  omission versus null and validate close-by zero-volume semantics before networking.
+- Report lost/invalid ACKs and ambiguous HTTP outcomes as UnknownOutcomeError;
+  preserve cancellation semantics and distinguish preflight/discovery failures.
+- Verify shared write scenarios, real TLS bytes, rejection, redirect, truncation,
+  timeout and cancellation boundaries; live trading remains unverified.
+
 - Document the staged trading-write plan and implement its first foundation:
   validated opening-position/ACK models and exact-body mutation signing with
   explicit idempotency keys. Client submission methods remain planned.

@@ -1,4 +1,4 @@
-"""Asyncio, read-only Exness Trading API client."""
+"""Asyncio, Exness Trading API client."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import httpx
 from websockets.asyncio.client import ClientConnection
 
 from exness._common import (
+    _ack_response,
     _append_response_chunk,
     _candle_params,
     _configuration,
@@ -23,8 +24,8 @@ from exness._common import (
     _operation_id,
     _response,
 )
-from exness.auth import Credentials, _Signer
-from exness.errors import ProtocolError, TransportError
+from exness.auth import Credentials, _idempotency_key, _Signer
+from exness.errors import APIError, ExnessError, ProtocolError, TransportError, UnknownOutcomeError
 from exness.events import (
     AccountStateEvent,
     HmrEvent,
@@ -39,6 +40,7 @@ from exness.events import (
 from exness.models import (
     AccessPoint,
     AccountDetails,
+    AckResponse,
     APIModel,
     CandleHistory,
     CandlePriceType,
@@ -54,6 +56,13 @@ from exness.models import (
     OrderHistoryItem,
     Tick,
     TradingSnapshot,
+)
+from exness.requests import (
+    ClosePositionRequest,
+    ModifyOrderRequest,
+    OpenPositionRequest,
+    PendingOrderRequest,
+    _request_identifier,
 )
 from exness.ticks import TickStreamGap, TickStreamOptions, _stream, stream_ticks
 from exness.trading import TradingEvent, TradingStreamGap, TradingStreamOptions, stream_trading
@@ -182,6 +191,95 @@ class AsyncExnessClient:
                 await response.aclose()
         except httpx.RequestError:
             raise TransportError("Exness request failed at the transport layer") from None
+
+    async def _submit(
+        self,
+        method: str,
+        resource: str,
+        body: bytes,
+        idempotency_key: str,
+        params: dict[str, str] | None = None,
+    ) -> AckResponse:
+        self._ensure_open()
+        _idempotency_key(idempotency_key)
+        host = await self.discover()
+        self._ensure_open()
+        path = f"/v1/trading/accounts/{self._account_id}/{resource}"
+        request = self._http.build_request(method, host + path, content=body, params=params)
+        request.headers.update(
+            self._signer.request_headers(
+                method,
+                request.url.raw_path.decode("ascii"),
+                body=request.content,
+                idempotency_key=idempotency_key,
+            )
+        )
+        request.headers["Accept"] = "application/json"
+        if body:
+            request.headers["Content-Type"] = "application/json"
+        try:
+            response = await self._http.send(request, stream=True)
+            try:
+                received = bytearray()
+                async for chunk in response.aiter_bytes():
+                    _append_response_chunk(received, chunk)
+                return _ack_response(response, received, idempotency_key)
+            finally:
+                await response.aclose()
+        except APIError as error:
+            if 400 <= error.status_code < 500 and error.status_code != 408:
+                raise
+            cause: ExnessError = error
+        except ProtocolError as error:
+            cause = error
+        except Exception:
+            # Once transport starts, even a connection failure cannot prove non-delivery.
+            # CancelledError is a BaseException and continues to propagate unchanged.
+            cause = TransportError("Exness request failed at the transport layer")
+        raise UnknownOutcomeError(
+            method=method,
+            path=path,
+            account_id=self._account_id,
+            idempotency_key=idempotency_key,
+            cause=cause,
+        ) from None
+
+    async def open_position(
+        self, request: OpenPositionRequest, *, idempotency_key: str
+    ) -> AckResponse:
+        """Submit once; accepted acknowledges admission, not execution."""
+        body = request.to_body()
+        return await self._submit("POST", "positions", body, idempotency_key)
+
+    async def place_pending_order(
+        self, request: PendingOrderRequest, *, idempotency_key: str
+    ) -> AckResponse:
+        """Submit one limit, stop or SLTP order; no automatic retry."""
+        body = request.to_body()
+        return await self._submit("POST", "orders", body, idempotency_key)
+
+    async def modify_order(
+        self, order_id: str, request: ModifyOrderRequest, *, idempotency_key: str
+    ) -> AckResponse:
+        """Omitted SL/TP fields are unchanged; explicit None removes them."""
+        _request_identifier(order_id)
+        body = request.to_body()
+        return await self._submit("PATCH", f"orders/{order_id}", body, idempotency_key)
+
+    async def cancel_pending_order(self, order_id: str, *, idempotency_key: str) -> AckResponse:
+        """Request cancellation once; the returned ACK is not a final result."""
+        _request_identifier(order_id)
+        return await self._submit("DELETE", f"orders/{order_id}", b"", idempotency_key)
+
+    async def close_position(
+        self, position_id: str, request: ClosePositionRequest, *, idempotency_key: str
+    ) -> AckResponse:
+        """Request full/partial/close-by closure once, using signed query parameters."""
+        _request_identifier(position_id)
+        params = request.to_query()
+        return await self._submit(
+            "DELETE", f"positions/{position_id}", b"", idempotency_key, params
+        )
 
     async def discover(self, *, refresh: bool = False) -> str:
         """Resolve and cache the account Access Point; refresh explicitly after migration."""

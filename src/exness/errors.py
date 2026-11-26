@@ -17,6 +17,24 @@ class ProtocolError(ExnessError):
     """A response violated the expected API contract."""
 
 
+class UnknownOutcomeError(ExnessError):
+    """A write may have reached the server; reconcile before deciding whether to retry.
+
+    Identity and sanitized cause are inspectable attributes, omitted from error text.
+    Path excludes query values. This exception does not mean the operation failed.
+    """
+
+    def __init__(
+        self, *, method: str, path: str, account_id: str, idempotency_key: str, cause: ExnessError
+    ) -> None:
+        self.method = method
+        self.path = path
+        self.account_id = account_id
+        self.idempotency_key = idempotency_key
+        self.cause = cause
+        super().__init__("Trading request outcome is unknown; reconcile before retrying")
+
+
 class APIError(ExnessError):
     """HTTP failure, including optional structured public API error fields."""
 

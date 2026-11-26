@@ -1,7 +1,7 @@
 # Trading operations development plan
 
-Status: stage 1 implemented; stage 2 is next. The public clients currently expose read-only
-operations. The stages below apply to both SDKs; completion means offline contract
+Status: stages 1–2 implemented on main; stage 3 is next. Clients expose read and
+explicit trading submission operations. The stages below apply to both SDKs; completion means offline contract
 and transport verification, not live interoperability. Publication is a separate task.
 
 ## Sources and boundaries
@@ -31,9 +31,9 @@ Stages 1–4 can proceed without an account. Stage 5 requires access and explici
 authorization for the particular live operations. Existing read-only examples
 remain read-only. Implementation and tests should land together in each repository.
 
-## Planned submission surface
+## Implemented submission surface
 
-All methods below are planned, not currently callable. Python async methods mirror
+All methods below are implemented on main. Python async methods mirror
 the sync signatures; Go methods take a context. All require a caller-provided
 idempotency key and return an acknowledgement rather than a trading result.
 
@@ -74,7 +74,7 @@ is a protocol failure and cannot be treated as a successful correlation.
 
 Before submission, validation/discovery failure means this SDK has not submitted
 the write. After entering the write transport, a timeout, disconnect, truncated
-response or invalid ACK may leave the server outcome unknown. Stage 2 will expose
+response or invalid ACK may leave the server outcome unknown. Stage 2 exposes
 that distinction with a dedicated error carrying request identity and the caller's
 key, without embedding request bodies or credentials in error text. Asyncio
 cancellation still propagates unchanged; Go errors retain context cancellation
@@ -96,9 +96,8 @@ explicit caller operation with a deadline and delay, not a submission side effec
 Python request types live in `exness.requests`; acknowledgement models in
 `exness.models`. Go uses the package root. `OpenPositionRequest.to_body()` in Python
 and `OpenPositionRequest.MarshalJSON()` in Go produce validated JSON bytes without
-network access. Treat these types as an alpha API; submission methods arrive in
-stage 2. Additional order variants and PATCH omission/null handling also belong
-to stage 2.
+network access. All five submission methods, pending-order variants and PATCH
+omission/null handling are implemented. Treat these types as an alpha API.
 
 ```python
 from decimal import Decimal
@@ -111,3 +110,29 @@ body = request.to_body()  # Validated JSON bytes; no network call.
 In Go, construct `Decimal` with `NewDecimal`, use `TradeBuy`/`TradeSell`, and call
 `json.Marshal(OpenPositionRequest{...})`. Nil optional pointers are omitted. Python
 rejects explicit None in opening requests; leave those keyword arguments out.
+
+## Implemented submission error policy
+
+- Validation, closed-client and discovery errors occur before write transport; they
+  do not become UnknownOutcomeError.
+- A fully read HTTP 4xx response other than 408 is an APIError rejection, with its
+  optional public code/message and Retry-After. No automatic retry follows it.
+- Transport/read failure, oversized body, invalid/mismatched ACK, HTTP 408, 5xx,
+  redirects and unexpected status codes are UnknownOutcomeError. This conservative
+  policy accounts for intermediary failures that cannot prove non-execution.
+- HTTP 202 requires a valid accepted ACK. Missing operation_id is preserved; a
+  missing echoed key is permitted, but a different echoed key fails correlation.
+- UnknownOutcomeError stores method, account, resource path without query and the
+  original idempotency key. Python exposes a sanitized cause attribute; Go unwraps
+  its cause for errors.Is/As. Neither error string includes the key or body.
+- Python task cancellation propagates unchanged at every phase. Go cancellation
+  before transport is a regular TransportError; after submission it is wrapped by
+  UnknownOutcomeError while still matching context.Canceled/DeadlineExceeded.
+- Preserve the caller's key before starting any call. Neither cancellation nor a
+  transport failure authorizes creating a new key and repeating the trade.
+
+Shared write-cases.json fixtures cover all variants, PATCH clearing and full,
+partial and close-by closure. The nullable SL/TP keywords in ModifyOrderRequest
+are legacy OpenAPI syntax despite the 3.1 document version. Schema tests apply
+only their documented null semantics to an in-memory schema; the pinned source
+is unchanged. Both SDKs verify actual wire signatures over loopback TLS.

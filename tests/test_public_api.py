@@ -22,9 +22,18 @@ def test_sync_async_rest_signature_parity() -> None:
     methods = {
         name
         for name in vars(ExnessClient)
-        if name == "discover" or name.startswith(("get_", "iter_"))
+        if name == "discover"
+        or name.startswith(("get_", "iter_"))
+        or name
+        in {
+            "open_position",
+            "close_position",
+            "place_pending_order",
+            "modify_order",
+            "cancel_pending_order",
+        }
     }
-    assert len(methods) == 12
+    assert len(methods) == 17
     for name in methods:
         sync = getattr(ExnessClient, name)
         asynchronous = getattr(AsyncExnessClient, name)

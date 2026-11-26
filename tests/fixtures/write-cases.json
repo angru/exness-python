@@ -1,0 +1,115 @@
+[
+  {
+    "name": "open",
+    "method": "POST",
+    "resource": "positions",
+    "body": {
+      "instrument": "EURUSD",
+      "side": "buy",
+      "volume": "0.01",
+      "comment": "тест <>&"
+    },
+    "query": {},
+    "schema": "OpenPositionRequest",
+    "key": "trade-open-0001"
+  },
+  {
+    "name": "limit",
+    "method": "POST",
+    "resource": "orders",
+    "body": {
+      "instrument": "EURUSD",
+      "side": "sell",
+      "type": "limit",
+      "volume": "0.01",
+      "price": "1.08000"
+    },
+    "query": {},
+    "schema": "NewPendingOrderRequest",
+    "key": "trade-limit-0001"
+  },
+  {
+    "name": "stop",
+    "method": "POST",
+    "resource": "orders",
+    "body": {
+      "instrument": "EURUSD",
+      "side": "sell",
+      "type": "stop",
+      "volume": "0.01",
+      "price": "1.08000"
+    },
+    "query": {},
+    "schema": "NewPendingOrderRequest",
+    "key": "trade-stop-0001"
+  },
+  {
+    "name": "sltp",
+    "method": "POST",
+    "resource": "orders",
+    "body": {
+      "type": "sltp",
+      "position_id": "000789",
+      "stop_loss_price": "1.05000"
+    },
+    "query": {},
+    "schema": "NewPendingOrderRequest",
+    "key": "trade-sltp-0001"
+  },
+  {
+    "name": "modify",
+    "method": "PATCH",
+    "resource": "orders/000456",
+    "body": {
+      "stop_loss_price": null,
+      "take_profit_price": "1.09000",
+      "comment": "clear SL"
+    },
+    "query": {},
+    "schema": "ModifyOrderRequest",
+    "key": "trade-modify-0001"
+  },
+  {
+    "name": "cancel",
+    "method": "DELETE",
+    "resource": "orders/000456",
+    "body": null,
+    "query": {},
+    "schema": null,
+    "key": "trade-cancel-0001"
+  },
+  {
+    "name": "close",
+    "method": "DELETE",
+    "resource": "positions/000789",
+    "body": null,
+    "query": {
+      "volume": "0.0100",
+      "price": "1.08340",
+      "deviation": "2.5"
+    },
+    "schema": null,
+    "key": "trade-close-0001"
+  },
+  {
+    "name": "close_by",
+    "method": "DELETE",
+    "resource": "positions/000789",
+    "body": null,
+    "query": {
+      "volume": "0.00",
+      "close_by_position_id": "000790"
+    },
+    "schema": null,
+    "key": "trade-close_by-0001"
+  },
+  {
+    "name": "close_full",
+    "method": "DELETE",
+    "resource": "positions/000789",
+    "body": null,
+    "query": {},
+    "schema": null,
+    "key": "trade-close_full-0001"
+  }
+]

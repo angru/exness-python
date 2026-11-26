@@ -25,7 +25,7 @@ This is a reviewed alpha surface, not a stable-API or live-interoperability clai
 | HMR | `stream_hmr(names)` | `StreamHMR(ctx, names, options)` |
 | Close | `close()` / `await aclose()`; context managers | `Close()`; usually `defer client.Close()` |
 
-Python's 12 discovery/REST/history methods have a signature parity regression test:
+Python's 17 discovery/REST/history/submission methods have a signature parity regression test:
 parameter names, defaults and types must match, with iterator yield types aligned.
 All five Go stream methods are exercised from an external test package with common
 options and inspectable cancellation. Examples are included in type/build checks.
@@ -104,3 +104,13 @@ submission or exactly-once delivery is provided. See README for cache rules.
   them. The neutral aliases added here preserve all existing names.
 - Live account interoperability, trading mutations and registry publication remain
   outside this release's verified scope. No credentials are required by tests.
+
+## Post-alpha-7: trading submission on main
+
+All five trading mutations are now implemented with typed inputs and caller-owned
+idempotency keys. The alpha 7 tags remain read-only. See TRADING_WRITES.md for
+methods, request variants, PATCH null handling, ACK correlation and unknown outcomes.
+Python exports UnknownOutcomeError from the package root and request types from
+exness.requests. Go exposes request types, PriceChange constructors and
+UnknownOutcomeError at the package root. Submission returns admission only;
+tracking helpers remain a future stage. The validation evidence is offline.

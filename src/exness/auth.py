@@ -53,6 +53,11 @@ class Credentials:
         return "Credentials(<redacted>)"
 
 
+def _idempotency_key(value: str) -> None:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._~-]{5,128}", value):
+        raise ValueError("Invalid idempotency key: expected 5..128 URL-safe ASCII characters")
+
+
 class _Signer:
     def __init__(self, credentials: Credentials, clock: Callable[[], float] = time.time) -> None:
         self._credentials = credentials
@@ -70,10 +75,7 @@ class _Signer:
             if body or idempotency_key:
                 raise ValueError("Signed GET requires an empty body and idempotency key")
         elif method in ("POST", "PATCH", "DELETE"):
-            if not re.fullmatch(r"[A-Za-z0-9._~-]{5,128}", idempotency_key):
-                raise ValueError(
-                    "Invalid idempotency key: expected 5..128 URL-safe ASCII characters"
-                )
+            _idempotency_key(idempotency_key)
         else:
             raise ValueError("Unsupported signed HTTP method")
         timestamp = int(self._clock() * 1000)

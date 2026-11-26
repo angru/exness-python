@@ -1,6 +1,6 @@
 # Exness Python SDK
 
-Unofficial, read-only SDK for the public Exness Trading API. Use English for code
+Unofficial SDK for the public Exness Trading API. Use English for code
 and documentation; reply to the user in Russian. Python >=3.11, uv only.
 
 - Source contract: `contracts/trading.public.yaml`; provenance in `contracts/README.md`.

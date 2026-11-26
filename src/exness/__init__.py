@@ -10,6 +10,7 @@ from exness.errors import (
     ProtocolError,
     StreamClosed,
     TransportError,
+    UnknownOutcomeError,
     WebSocketAPIError,
 )
 from exness.events import ServerStreamGap, ServerStreamOptions
@@ -34,5 +35,6 @@ __all__ = [
     "TradingStreamGap",
     "TradingStreamOptions",
     "TransportError",
+    "UnknownOutcomeError",
     "WebSocketAPIError",
 ]

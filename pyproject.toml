@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "exness-python"
 version = "0.1.0a7"
-description = "Unofficial typed, read-only client for the Exness Trading API"
+description = "Unofficial typed client for the Exness Trading API"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

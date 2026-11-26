@@ -15,22 +15,60 @@ The package has not been published to PyPI or verified against a live account.
 - Structured errors, finite REST timeouts, no automatic REST retries or redirects.
 - Asyncio tick/transaction streams with opt-in bounded reconnects and visible gaps.
 
-Python 3.11+. Both synchronous and asyncio clients support the same read-only REST
+Python 3.11+. Both synchronous and asyncio clients support the same REST
 operations. The asyncio client also streams live ticks and transactions over
-WebSocket, including account-state, instrument and HMR events. Trading mutations
-remain future work.
-The companion [Go SDK](https://github.com/angru/exness-go) has the same read-only operations
+WebSocket, including account-state, instrument and HMR events. All five trading submission methods are available on `main`.
+The companion [Go SDK](https://github.com/angru/exness-go) has the same read and submission operations
 and shared synthetic response/signing fixtures. Each repository builds independently.
 
-## Trading support in development
+## Trading submission on main
 
-The next milestone is typed trading submission followed by explicit result tracking.
-The [implementation plan](TRADING_WRITES.md) defines five stages, the planned methods,
-idempotency rules, acknowledgement handling and recovery after an uncertain outcome.
-On `main`, stage 1 implements request encoding/signing, `exness.requests.OpenPositionRequest`
-and `exness.models.AckResponse`. Client submission methods follow in stage 2.
-Stages 1–4 use offline tests; live interoperability is a separate final check.
-See [ROADMAP.md](ROADMAP.md) for status. These additions are not in the alpha 7 tag.
+Both clients implement `open_position`, `place_pending_order`, `modify_order`,
+`cancel_pending_order` and `close_position`. These are untagged additions; alpha 7
+remains read-only. Use the development checkout for this functionality.
+
+Request types live in `exness.requests`: `OpenPositionRequest`, `LimitOrderRequest`,
+`StopOrderRequest`, `SltpOrderRequest`, `ModifyOrderRequest` and `ClosePositionRequest`.
+Every submission requires a caller-managed `idempotency_key`. Persist that key
+before sending; it must contain 5–128 characters from `A-Z a-z 0-9 . _ - ~`.
+Trading submissions require the appropriate Trading write permissions.
+
+With a configured client and a persisted `request_key`:
+
+```python
+from decimal import Decimal
+from exness.requests import LimitOrderRequest, ModifyOrderRequest, ClosePositionRequest
+
+request = LimitOrderRequest(
+    instrument="EURUSD", side="buy", volume=Decimal("0.01"), price=Decimal("1.08000")
+)
+ack = client.place_pending_order(request, idempotency_key=request_key)
+# ack.status == "accepted" means admission, not execution success.
+
+# Build separate requests; submission needs a distinct persisted key for each intent.
+remove_sl = ModifyOrderRequest(stop_loss_price=None)  # explicit JSON null
+partial_close = ClosePositionRequest(volume=Decimal("0.01"))
+full_close = ClosePositionRequest()
+```
+
+Await the same methods on `AsyncExnessClient`. Omitted PATCH levels stay unchanged;
+None clears SL/TP, and Decimal replaces it. A comment-only modification is invalid.
+Closing options are query parameters with an empty DELETE body. Zero close volume
+is permitted only with `close_by_position_id`; empty options request full closure.
+Validation occurs before discovery. No implicit instrument-condition reads,
+request splitting, polling, redirects or retries are performed.
+
+A returned `AckResponse` may lack `operation_id` under the upstream schema. Inspect
+its fields before tracking; a mismatched echoed `client_request_id` is an unknown
+outcome. `UnknownOutcomeError` means the operation might have reached the server:
+inspect `method`, `path` (without query), `account_id`, `idempotency_key` and `cause`.
+The key and request details are excluded from exception text. Reconcile before
+retrying; a new key can create a second operation. Cancellation is not rollback:
+`asyncio.CancelledError` propagates unchanged, so retain the caller's key yourself.
+
+The [implementation plan](TRADING_WRITES.md) records the exact error policy and
+remaining stages. Stages 1–2 are implemented and tested offline; result tracking
+is next. Live interoperability remains unverified.
 
 ## Installation and local setup
 
@@ -281,11 +319,14 @@ fields; HTTP failures still raise `APIError`. There is no automatic polling.
 ## Errors
 
 - `ConfigurationError`: invalid key, account ID, URL or timeout.
-- `ValueError`: invalid history arguments, before any network request.
+- `ValueError`: invalid arguments or request models, before any network request.
 - `TransportError`: HTTPX network/timeout failure, sanitized message.
-- `APIError`: non-200 HTTP response, with `status_code`, optional numeric `code`,
+- `APIError`: read HTTP failures or completed write rejections (4xx except 408),
+  with `status_code`, optional numeric `code`,
   `error_message`, and raw `retry_after` header.
-- `ProtocolError`: malformed JSON, response schema mismatch or invalid discovery.
+- `ProtocolError`: malformed read responses, schema mismatch or invalid discovery.
+- `UnknownOutcomeError`: write transport/ACK failure or ambiguous HTTP outcome;
+  inspect its sanitized `cause` and reconcile before any retry.
 
 The SDK does not automatically retry any request, including 429. Consult limits
 and decide when to retry in your application. Exception text excludes raw response

@@ -25,11 +25,23 @@ It is reference material from Exness, not an SDK-generated specification.
 | `get_instrument_conditions` | `getInstrumentCondition` |
 | `get_candle_history` | `getCandleHistory` |
 | `get_operation_status` | `getOperationStatus` |
+| `place_pending_order` | `placePendingOrder` |
+| `modify_order` | `modifyOrder` |
+| `cancel_pending_order` | `cancelPendingOrder` |
+| `open_position` | `openPosition` |
+| `close_position` | `closePosition` |
 
 All nine read-only REST operations in the pinned Trading YAML are covered, plus
 Gateway discovery. The asyncio client also implements `getWSTicks`; its actual
 handshake is GET and the nested `id + subscribe` payload is a WebSocket message.
 WebSocket handshakes are not included in REST coverage.
+
+On main, all five trading mutations are also implemented. HTTP 202 returns an
+admission acknowledgement, not an execution result. Shared `write-cases.json`
+fixtures and TLS tests cover bodies, signed queries, explicit idempotency keys,
+PATCH null removal and close-by zero-volume behavior. The modification schema
+uses legacy `nullable` keywords; tests adapt only those documented null semantics
+in memory. See [TRADING_WRITES.md](../TRADING_WRITES.md) for error/recovery policy.
 
 Tick streaming follows the pinned `WSTick`, `WSTicksSubscribeRequestData` and
 `WsErrorResponse` schemas and the official
@@ -125,8 +137,8 @@ DER. Tests compare the SDK output byte-for-byte; OpenSSL is not required at test
 `tests/fixtures/mutation-signing-vectors.json` extends that independent OpenSSL
 procedure to POST with a Unicode JSON body, PATCH with explicit null, and DELETE
 with an encoded query and empty body. The same vectors and opening-position/ACK
-fixtures are copied into Go's `testdata/`. These are stage-1 foundation checks;
-they do not imply client submission methods are implemented. See
+fixtures are copied into Go's `testdata/`. These stage-1 foundation checks are now
+complemented by stage-2 client submission tests. See
 [TRADING_WRITES.md](../TRADING_WRITES.md) for the implementation stages.
 
 ## Candle schema ambiguity

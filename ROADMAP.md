@@ -75,7 +75,7 @@ ambiguity and the request-selected validation approach are documented in
 See [TRADING_WRITES.md](TRADING_WRITES.md) for the shared design and acceptance criteria.
 
 - [x] Stage 1: exact-byte mutation signing, explicit keys, opening-position and ACK models.
-- [ ] Stage 2: five submission methods, remaining request types and unknown-outcome handling.
+- [x] Stage 2: five submission methods, remaining request types and unknown-outcome handling.
 - [ ] Stage 3: bounded result tracking and event correlation.
 - [ ] Stage 4: offline recovery examples and cross-SDK scenarios.
 - [ ] Stage 5: explicitly authorized live interoperability when an account is available.
