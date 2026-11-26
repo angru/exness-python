@@ -1,0 +1,1635 @@
+{
+  "messages": {
+    "baseline": {
+      "event_type": "trading_state_snapshot",
+      "payload": {
+        "account_state": {
+          "balance": "1000.00",
+          "equity": "1000.00",
+          "used_margin": "10.00"
+        },
+        "orders": [
+          {
+            "order_id": "1001",
+            "order_type": "limit",
+            "state": "placed",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "instrument": "EURUSD",
+            "direction": "buy",
+            "price": "1.08000",
+            "volume": "0.01",
+            "stop_loss_price": "1.07000",
+            "take_profit_price": "1.09000"
+          }
+        ],
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "1.00",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      }
+    },
+    "ack_close": {
+      "status": "accepted",
+      "client_request_id": "demo-close",
+      "operation_id": "790"
+    },
+    "ack_poll": {
+      "status": "accepted",
+      "client_request_id": "demo-poll",
+      "operation_id": "900"
+    },
+    "ack_reject": {
+      "status": "accepted",
+      "client_request_id": "demo-reject",
+      "operation_id": "901"
+    },
+    "ack_failed": {
+      "status": "accepted",
+      "client_request_id": "demo-failed",
+      "operation_id": "902"
+    },
+    "ack_without_id": {
+      "status": "accepted",
+      "client_request_id": "demo-no-id"
+    },
+    "late_ack": {
+      "status": "accepted",
+      "client_request_id": "demo-lost",
+      "operation_id": "800"
+    },
+    "partial": {
+      "event_type": "transaction_event",
+      "payload": {
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.60",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      },
+      "operation_id": "790",
+      "client_request_id": "demo-close",
+      "status": "success"
+    },
+    "later_partial": {
+      "event_type": "transaction_event",
+      "payload": {
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.40",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      },
+      "operation_id": "791",
+      "client_request_id": "other-close",
+      "status": "success"
+    },
+    "closed": {
+      "event_type": "transaction_event",
+      "payload": {
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "closed",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.00",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      },
+      "operation_id": "792",
+      "client_request_id": "other-final",
+      "status": "success"
+    },
+    "cancelled": {
+      "event_type": "transaction_event",
+      "payload": {
+        "orders": [
+          {
+            "order_id": "1001",
+            "order_type": "limit",
+            "state": "cancelled",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "instrument": "EURUSD",
+            "direction": "buy",
+            "price": "1.08000",
+            "volume": "0.01",
+            "stop_loss_price": "1.07000",
+            "take_profit_price": "1.09000"
+          }
+        ]
+      },
+      "operation_id": "793",
+      "client_request_id": "other-order",
+      "status": "success"
+    },
+    "filled": {
+      "event_type": "transaction_event",
+      "payload": {
+        "orders": [
+          {
+            "order_id": "1001",
+            "order_type": "limit",
+            "state": "filled",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "instrument": "EURUSD",
+            "direction": "buy",
+            "price": "1.08000",
+            "volume": "0.01",
+            "stop_loss_price": "1.07000",
+            "take_profit_price": "1.09000"
+          }
+        ]
+      },
+      "operation_id": "794",
+      "client_request_id": "other-fill",
+      "status": "success"
+    },
+    "new_order": {
+      "event_type": "transaction_event",
+      "payload": {
+        "orders": [
+          {
+            "order_id": "001002",
+            "order_type": "limit",
+            "state": "pending_new",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "instrument": "EURUSD",
+            "direction": "buy",
+            "price": "1.08000",
+            "volume": "0.01",
+            "stop_loss_price": "1.07000",
+            "take_profit_price": "1.09000"
+          }
+        ]
+      },
+      "status": "success"
+    },
+    "balance": {
+      "event_type": "transaction_event",
+      "status": "success",
+      "event_time": "2026-11-19T10:00:00Z",
+      "payload": {
+        "deals": [
+          {
+            "deal_id": "3001",
+            "type": "balance",
+            "create_time": "2026-01-02T00:00:00+00:00",
+            "profit": {
+              "amount": "100.01",
+              "currency": "USD"
+            }
+          }
+        ],
+        "account_state": {
+          "balance": "1010.01",
+          "equity": "1010.01",
+          "used_margin": "10.00",
+          "leverage": "100"
+        }
+      }
+    },
+    "balance_later": {
+      "event_type": "transaction_event",
+      "status": "success",
+      "event_time": "2026-11-19T10:00:00Z",
+      "payload": {
+        "deals": [
+          {
+            "deal_id": "3002",
+            "type": "balance",
+            "create_time": "2026-01-02T00:00:00+00:00",
+            "profit": {
+              "amount": "100.01",
+              "currency": "USD"
+            }
+          }
+        ],
+        "account_state": {
+          "balance": "1015.01",
+          "equity": "1015.01",
+          "used_margin": "10.00",
+          "leverage": "100"
+        }
+      }
+    },
+    "recovered": {
+      "event_type": "trading_state_snapshot",
+      "payload": {
+        "account_state": {
+          "balance": "950.00",
+          "equity": "950.00",
+          "used_margin": "5.00"
+        },
+        "orders": [],
+        "positions": [
+          {
+            "position_id": "2002",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.25",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      }
+    },
+    "empty": {
+      "event_type": "trading_state_snapshot",
+      "payload": {
+        "account_state": {
+          "balance": "1000.00",
+          "equity": "1000.00",
+          "used_margin": "10.00"
+        },
+        "orders": [],
+        "positions": []
+      }
+    },
+    "pending": {
+      "operation_id": "900",
+      "status": "pending",
+      "created_at": "2026-05-11T10:00:00.000000Z",
+      "updated_at": "2026-05-11T10:00:00.123000Z",
+      "client_request_id": "demo-poll"
+    },
+    "confirmed": {
+      "operation_id": "900",
+      "status": "confirmed",
+      "created_at": "2026-05-11T10:00:00.000000Z",
+      "updated_at": "2026-05-11T10:00:00.123000Z",
+      "client_request_id": "demo-poll"
+    },
+    "rejected": {
+      "event_type": "transaction_event",
+      "payload": {},
+      "operation_id": "901",
+      "client_request_id": "demo-reject",
+      "status": "rejected",
+      "error_code": 4000,
+      "error_message": "SYNTHETIC_REJECTED"
+    },
+    "failed": {
+      "event_type": "transaction_event",
+      "payload": {},
+      "operation_id": "902",
+      "client_request_id": "demo-failed",
+      "status": "failed",
+      "error_code": 5000,
+      "error_message": "SYNTHETIC_FAILED"
+    },
+    "lost_ack_event": {
+      "event_type": "transaction_event",
+      "payload": {
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.60",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      },
+      "operation_id": "800",
+      "client_request_id": "demo-lost",
+      "status": "success"
+    },
+    "late_pending": {
+      "operation_id": "800",
+      "status": "pending",
+      "created_at": "2026-05-11T10:00:00.000000Z",
+      "updated_at": "2026-05-11T10:00:00.123000Z",
+      "client_request_id": "demo-lost"
+    },
+    "conflicting_terminal": {
+      "operation_id": "800",
+      "status": "rejected",
+      "created_at": "2026-05-11T10:00:00.000000Z",
+      "updated_at": "2026-05-11T10:00:00.123000Z",
+      "client_request_id": "demo-lost",
+      "error_code": 4000,
+      "error_message": "SYNTHETIC_REJECTED"
+    },
+    "missing_status": {
+      "event_type": "transaction_event",
+      "payload": {},
+      "operation_id": "810",
+      "client_request_id": "demo-no-id"
+    },
+    "missing_status_final": {
+      "operation_id": "810",
+      "status": "failed",
+      "created_at": "2026-05-11T10:00:00.000000Z",
+      "updated_at": "2026-05-11T10:00:00.123000Z",
+      "client_request_id": "demo-no-id",
+      "error_code": 5000,
+      "error_message": "SYNTHETIC_FAILED"
+    },
+    "identity_conflict": {
+      "event_type": "transaction_event",
+      "payload": {
+        "positions": [
+          {
+            "position_id": "2001",
+            "direction": "buy",
+            "instrument": "EURUSD",
+            "state": "open",
+            "create_time": "2026-01-01T00:00:00+00:00",
+            "volume": "0.60",
+            "initial_volume": "1.00",
+            "open_price": "1.08000",
+            "margin_rate": "1.0",
+            "commission": "-0.20",
+            "swap": "0.00"
+          }
+        ]
+      },
+      "operation_id": "900",
+      "client_request_id": "wrong-key",
+      "status": "success"
+    },
+    "no_id_result": {
+      "event_type": "transaction_event",
+      "payload": {},
+      "client_request_id": "demo-no-id",
+      "status": "rejected",
+      "error_code": 4000,
+      "error_message": "SYNTHETIC_REJECTED"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "partial-close-and-duplicates",
+      "key": "demo-close",
+      "steps": [
+        {
+          "label": "admission-only",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_close"
+        },
+        {
+          "label": "initial-snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "replace-remaining-volume",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.60"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "partial"
+        },
+        {
+          "label": "same-event-again",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.60"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "partial"
+        },
+        {
+          "label": "another-operation",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.40"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "later_partial"
+        },
+        {
+          "label": "older-duplicate-cannot-rollback",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.40"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "partial"
+        },
+        {
+          "label": "remove-closed-position",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "closed"
+        },
+        {
+          "label": "remove-cancelled-order",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "cancelled"
+        },
+        {
+          "label": "replace-balance-observe-deal",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1010.01",
+              "equity": "1010.01",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [
+              "3001"
+            ],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "balance"
+        },
+        {
+          "label": "deposit-duplicate",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1010.01",
+              "equity": "1010.01",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [
+              "3001"
+            ],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "balance"
+        },
+        {
+          "label": "later-deposit",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1015.01",
+              "equity": "1015.01",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [
+              "3001",
+              "3002"
+            ],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "balance_later"
+        },
+        {
+          "label": "old-deposit-duplicate",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1015.01",
+              "equity": "1015.01",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [
+              "3001",
+              "3002"
+            ],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "balance"
+        },
+        {
+          "label": "stream-ended",
+          "kind": "end",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "790",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "gap-timeout-and-status-recovery",
+      "key": "demo-poll",
+      "steps": [
+        {
+          "label": "ack",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_poll"
+        },
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "pending",
+          "kind": "status",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "pending",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "pending"
+        },
+        {
+          "label": "wait-expired",
+          "kind": "timeout",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "pending",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          }
+        },
+        {
+          "label": "gap",
+          "kind": "gap",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "pending",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          }
+        },
+        {
+          "label": "refuse-delta-without-baseline",
+          "kind": "stream",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "pending",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "partial",
+          "expected_error": true
+        },
+        {
+          "label": "status-does-not-restore-cache",
+          "kind": "status",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "confirmed"
+        },
+        {
+          "label": "replace-old-baseline",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "950.00",
+              "equity": "950.00",
+              "used_margin": "5.00"
+            },
+            "order_ids": [],
+            "position_volumes": {
+              "2002": "0.25"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "recovered"
+        },
+        {
+          "label": "end",
+          "kind": "end",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "rejected-execution",
+      "key": "demo-reject",
+      "steps": [
+        {
+          "label": "ack",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "901",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_reject"
+        },
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "901",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "failure-is-data",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "901",
+              "outcome": "rejected",
+              "error_code": 4000,
+              "error_message": "SYNTHETIC_REJECTED",
+              "wait_expired": false
+            }
+          },
+          "message": "rejected"
+        },
+        {
+          "label": "duplicate-result",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "901",
+              "outcome": "rejected",
+              "error_code": 4000,
+              "error_message": "SYNTHETIC_REJECTED",
+              "wait_expired": false
+            }
+          },
+          "message": "rejected"
+        }
+      ]
+    },
+    {
+      "name": "failed-execution",
+      "key": "demo-failed",
+      "steps": [
+        {
+          "label": "ack",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "902",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_failed"
+        },
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "902",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "failure-is-data",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "902",
+              "outcome": "failed",
+              "error_code": 5000,
+              "error_message": "SYNTHETIC_FAILED",
+              "wait_expired": false
+            }
+          },
+          "message": "failed"
+        },
+        {
+          "label": "duplicate-result",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "902",
+              "outcome": "failed",
+              "error_code": 5000,
+              "error_message": "SYNTHETIC_FAILED",
+              "wait_expired": false
+            }
+          },
+          "message": "failed"
+        }
+      ]
+    },
+    {
+      "name": "lost-ack-and-late-observations",
+      "key": "demo-lost",
+      "steps": [
+        {
+          "label": "snapshot-cannot-prove-outcome",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "timeout-without-operation-id",
+          "kind": "timeout",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          }
+        },
+        {
+          "label": "correlate-by-persisted-key",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.60"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "800",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "lost_ack_event"
+        },
+        {
+          "label": "late-ack-does-not-downgrade",
+          "kind": "ack",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.60"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "800",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "late_ack"
+        },
+        {
+          "label": "late-pending-does-not-downgrade",
+          "kind": "status",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "0.60"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "800",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "late_pending"
+        },
+        {
+          "label": "conflicting-terminal-requires-review",
+          "kind": "status",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "800",
+              "outcome": "confirmed",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": true
+            }
+          },
+          "message": "conflicting_terminal",
+          "expected_error": true
+        }
+      ]
+    },
+    {
+      "name": "missing-event-status",
+      "key": "demo-no-id",
+      "steps": [
+        {
+          "label": "ack-without-id",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_without_id"
+        },
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "identity-does-not-prove-completion",
+          "kind": "stream",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "810",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "missing_status"
+        },
+        {
+          "label": "explicit-status-after-id-observed",
+          "kind": "status",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "810",
+              "outcome": "failed",
+              "error_code": 5000,
+              "error_message": "SYNTHETIC_FAILED",
+              "wait_expired": false
+            }
+          },
+          "message": "missing_status_final"
+        }
+      ]
+    },
+    {
+      "name": "conflicting-identifiers",
+      "key": "demo-poll",
+      "steps": [
+        {
+          "label": "ack",
+          "kind": "ack",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "ack_poll"
+        },
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "refuse-conflicting-event",
+          "kind": "stream",
+          "expected": {
+            "ready": false,
+            "account": null,
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": "900",
+              "outcome": "accepted",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "identity_conflict",
+          "expected_error": true
+        }
+      ]
+    },
+    {
+      "name": "snapshot-replacement-and-key-only-result",
+      "key": "demo-no-id",
+      "steps": [
+        {
+          "label": "snapshot",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "replace-not-merge",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "empty"
+        },
+        {
+          "label": "new-active-order",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1002"
+            ],
+            "position_volumes": {},
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "new_order"
+        },
+        {
+          "label": "new-snapshot-drops-previous-entities",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [
+              "1001"
+            ],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "baseline"
+        },
+        {
+          "label": "remove-filled-order",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "unknown",
+              "error_code": null,
+              "error_message": null,
+              "wait_expired": false
+            }
+          },
+          "message": "filled"
+        },
+        {
+          "label": "terminal-event-without-operation-id",
+          "kind": "stream",
+          "expected": {
+            "ready": true,
+            "account": {
+              "balance": "1000.00",
+              "equity": "1000.00",
+              "used_margin": "10.00"
+            },
+            "order_ids": [],
+            "position_volumes": {
+              "2001": "1.00"
+            },
+            "observed_deal_ids": [],
+            "operation": {
+              "operation_id": null,
+              "outcome": "rejected",
+              "error_code": 4000,
+              "error_message": "SYNTHETIC_REJECTED",
+              "wait_expired": false
+            }
+          },
+          "message": "no_id_result"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Trading operations development plan
 
-Status: stages 1–3 implemented on main; stage 4 is next. Clients expose read and
+Status: stages 1–4 implemented on main; stage 5 awaits live account access. Clients expose read and
 explicit trading submission operations. The stages below apply to both SDKs; completion means offline contract
 and transport verification, not live interoperability. Publication is a separate task.
 
@@ -172,5 +172,21 @@ helpers neither consume streams nor synthesize a status from changed entities.
 After a gap, rebuild account state from a fresh stream snapshot before applying
 deltas. A missing ACK, wait timeout, 404, cancellation or incomplete event remains
 a reconciliation problem, not permission to repeat the trade with a fresh key.
-The next stage adds runnable application recovery scenarios; live verification
+Runnable application recovery scenarios are now available; live verification
 and publication remain deferred.
+
+## Implemented offline application scenarios
+
+The runnable examples in [examples/RECOVERY.md](examples/RECOVERY.md) exercise eight
+shared scenarios with 49 expected intermediate views. They replace snapshots,
+merge entity observations by ID, handle partial/full closure and terminal orders,
+retain rejection/failure details and separate operation outcomes from account-state
+continuity. Exact duplicates are bounded to one snapshot epoch; gaps and stream
+termination invalidate the baseline. Lost ACKs use the persisted caller key, and
+late observations cannot silently downgrade or contradict a terminal result.
+
+These are finite, single-consumer application examples, not new public SDK state
+management APIs. The bundled fixtures and expected views are identical across
+repositories; tests validate checkpoints, contract messages and capacity/conflict
+boundaries. Both programs run without credentials or network access. History
+completeness, durable restart recovery and live interoperability are not claimed.

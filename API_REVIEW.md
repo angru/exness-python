@@ -118,3 +118,13 @@ ACKs, status reads and transaction events; wait_operation / WaitOperation perfor
 bounded reads only. Timeout errors preserve identity and the last status. Python
 sync waiting has cooperative network deadlines; async/Go support cancellation
 through in-flight reads and discovery waits. The validation evidence is offline.
+
+
+## Post-alpha-7: offline recovery examples
+
+Stage 4 adds application examples only; public SDK signatures are unchanged.
+The Python and Go programs use byte-identical synthetic scenarios with 49 expected
+views. They demonstrate operation correlation independently of snapshot continuity,
+with bounded duplicate/entity storage and explicit invalidation. See
+[examples/RECOVERY.md](examples/RECOVERY.md) for commands, policy and limitations.
+The examples are not a durable account cache or a complete deal ledger.

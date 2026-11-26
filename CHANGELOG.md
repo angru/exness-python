@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add runnable offline account-recovery examples with eight shared scenarios and
+  49 matching checkpoints, requiring no credentials or network connection.
+- Demonstrate snapshot replacement, partial/full closure, rejected/failed execution,
+  bounded duplicate handling, stream gaps, lost ACKs and late/conflicting results.
+- Test example checkpoints, pinned-contract messages and capacity/conflict boundaries;
+  document application policy, incomplete deal history and reconnect limitations.
+
 - Add explicit bounded operation-status waiting and account-scoped OperationReference
   correlation for ACKs, REST status and transaction events. Preserve terminal
   rejection/failure details and timeout identity without retrying trading writes.

@@ -70,14 +70,14 @@ ambiguity and the request-selected validation approach are documented in
 - Prepared alpha 7 tags, release notes and reproducible install instructions.
   See API_REVIEW.md and RELEASE.md.
 
-## In progress: trading operations
+## Implemented offline: trading operations
 
 See [TRADING_WRITES.md](TRADING_WRITES.md) for the shared design and acceptance criteria.
 
 - [x] Stage 1: exact-byte mutation signing, explicit keys, opening-position and ACK models.
 - [x] Stage 2: five submission methods, remaining request types and unknown-outcome handling.
 - [x] Stage 3: bounded result tracking and event correlation.
-- [ ] Stage 4: offline recovery examples and cross-SDK scenarios.
+- [x] Stage 4: offline recovery examples and cross-SDK scenarios (8 scenarios, 49 checkpoints).
 - [ ] Stage 5: explicitly authorized live interoperability when an account is available.
 
 Stages 1–4 do not require live access. Registry publication remains deferred.

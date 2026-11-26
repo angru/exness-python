@@ -67,8 +67,22 @@ retrying; a new key can create a second operation. Cancellation is not rollback:
 `asyncio.CancelledError` propagates unchanged, so retain the caller's key yourself.
 
 The [implementation plan](TRADING_WRITES.md) records the exact error policy and
-remaining stages. Stages 1–3 are implemented and tested offline; application recovery
-examples are next. Live interoperability remains unverified.
+remaining stages. Stages 1–4 are implemented and tested offline. Live interoperability remains unverified.
+
+## Offline recovery example on main
+
+Run from the development checkout, without credentials or network access:
+
+```sh
+uv run python examples/recover_trading.py
+```
+
+The example checks eight shared scenarios and prints 49 JSON Lines checkpoints:
+snapshot replacement, partial/full closure, rejected/failed execution, duplicates,
+stream gaps and lost ACKs. Operation outcomes remain separate from account-state
+continuity. It uses bounded application state and never submits a trade.
+[The recovery guide](examples/RECOVERY.md) explains the output, tests and limits,
+including incomplete deal history and duplicate handling within one snapshot epoch.
 
 ## Explicit result tracking on main
 
