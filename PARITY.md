@@ -110,6 +110,7 @@ verify the synthetic signature against the received request target.
 | `lost_ack` | Signed discovery, then one signed open-position POST for EURUSD, buy, volume `0.01`. The fixture reads the complete bounded body and closes the connection without sending an HTTP response. Both SDKs return `UnknownOutcomeError` with the original synthetic idempotency key, account, method and path. |
 | `lost_ack_recovery` | Each client submits one open-position POST and uses the key preserved by `UnknownOutcomeError` to correlate a terminal result from a fresh transactions subscription. The snapshot leaves the result unset, the foreign success is ignored, and the matching rejection is selected. |
 | `acknowledged_open` | After signed discovery, one verified open-position POST receives HTTP 202 with the caller key and an operation ID. The same client builds a reference from that ACK and waits for confirmation with two signed status reads. |
+| `acknowledged_open_rate_limited` | The same ACK and pending status precede a 429 on the second signed status read. Both public wait calls return `APIError` with status `429` and the original `Retry-After` string `"7"`. |
 
 The reconnect scenarios expect one signed discovery and two signed upgrades to the
 events endpoint. Both subscriptions use distinct nonempty request IDs. The trading
@@ -166,6 +167,14 @@ signed receipt, ACK identity, and wire responses `pending` then `confirmed`,
 as well as the final correlated `confirmed` result returned by `wait_operation`
 or `WaitOperation`. A rejected extra request fails the check even if the driver
 returns a successful result.
+
+`acknowledged_open_rate_limited` reuses the ACK and first status response. The
+second GET receives a synthetic `REQUEST_RATE_LIMIT` error with `Retry-After: 7`.
+Each transcript records `pending` and HTTP `429` from the fixture, plus the
+status code and header value from the SDK's error. The wait budget exceeds
+seven seconds so a retry that honors the header can reach the fixture and fail
+the check. A third GET or repeated POST fails even if the consumer suppresses
+the request error.
 
 Use Go 1.26 and a clean Go checkout at the full SHA recorded in
 `tools/parity-peer.json`. Prepare dependencies with `go mod download` in that

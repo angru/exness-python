@@ -106,8 +106,8 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 		return runHMR(ctx, client, 1)
 	case "hmr_missing_snapshot":
 		return runHMR(ctx, client, 2)
-	case "acknowledged_open":
-		return runAcknowledgedOpen(ctx, client)
+	case "acknowledged_open", "acknowledged_open_rate_limited":
+		return runAcknowledgedOpen(ctx, client, scenario == "acknowledged_open_rate_limited")
 	case "lost_ack", "lost_ack_recovery":
 		unknown, err := submitLostAck(ctx, client)
 		if err != nil {
@@ -201,7 +201,7 @@ func submitLostAck(ctx context.Context, client *exness.Client) (*exness.UnknownO
 	return unknown, nil
 }
 
-func runAcknowledgedOpen(ctx context.Context, client *exness.Client) error {
+func runAcknowledgedOpen(ctx context.Context, client *exness.Client, rateLimited bool) error {
 	ack, err := submitOpenPosition(ctx, client, acknowledgedOpenKey)
 	if err != nil || ack == nil {
 		return errors.New("expected an open-position acknowledgement")
@@ -210,12 +210,35 @@ func runAcknowledgedOpen(ctx context.Context, client *exness.Client) error {
 	if err != nil {
 		return errors.New("build operation reference from acknowledgement")
 	}
+	timeout := 3 * time.Second
+	if rateLimited {
+		// A retry that honors Retry-After must have time to reach the fixture.
+		timeout = 10 * time.Second
+	}
 	result, err := client.WaitOperation(ctx, reference, exness.OperationWaitOptions{
-		Timeout:      3 * time.Second,
+		Timeout:      timeout,
 		PollInterval: 10 * time.Millisecond,
 	})
-	if err != nil || result == nil {
-		return errors.New("wait for open-position confirmation")
+	var outcome map[string]any
+	if rateLimited {
+		var apiError *exness.APIError
+		if result != nil || !errors.As(err, &apiError) {
+			return errors.New("expected APIError while waiting for open-position confirmation")
+		}
+		outcome = map[string]any{
+			"error":       "APIError",
+			"status_code": apiError.StatusCode,
+			"retry_after": apiError.RetryAfter,
+		}
+	} else {
+		if err != nil || result == nil {
+			return errors.New("wait for open-position confirmation")
+		}
+		outcome = map[string]any{
+			"status":            result.Status,
+			"operation_id":      result.OperationID,
+			"client_request_id": result.ClientRequestID,
+		}
 	}
 	return json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"ack": map[string]any{
@@ -223,11 +246,7 @@ func runAcknowledgedOpen(ctx context.Context, client *exness.Client) error {
 			"operation_id":      ack.OperationID,
 			"client_request_id": ack.ClientRequestID,
 		},
-		"outcome": map[string]any{
-			"status":            result.Status,
-			"operation_id":      result.OperationID,
-			"client_request_id": result.ClientRequestID,
-		},
+		"outcome": outcome,
 	})
 }
 

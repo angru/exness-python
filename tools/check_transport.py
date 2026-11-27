@@ -36,6 +36,7 @@ from websockets.exceptions import ConnectionClosed
 from websockets.http11 import Request, Response
 
 from exness import (
+    APIError,
     AsyncExnessClient,
     Credentials,
     ExnessError,
@@ -84,6 +85,11 @@ PEER_TIMEOUT = 15
 BUILD_TIMEOUT = 120
 MAX_ORDER_BODY = 1024
 STATUS_FIXTURES = ("operation_pending.json", "operation_confirmed.json")
+RATE_LIMIT_RETRY_AFTER = "7"
+# Leave enough time for an erroneous retry that honors Retry-After to reach the fixture.
+RATE_LIMIT_WAIT_TIMEOUT = 10
+ACKNOWLEDGED_OPEN_SCENARIOS = (Scenario.ACKNOWLEDGED_OPEN, Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED)
+WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY, *ACKNOWLEDGED_OPEN_SCENARIOS)
 HMR_SCENARIOS = (Scenario.HMR_RECOVERY, Scenario.HMR_MISSING_SNAPSHOT)
 TRADING_RECONNECT_SCENARIOS = (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT)
 
@@ -299,7 +305,7 @@ class WriteWire:
 
     @property
     def key(self) -> str:
-        return ACKNOWLEDGED_OPEN_KEY if self.scenario is Scenario.ACKNOWLEDGED_OPEN else WRITE_KEY
+        return ACKNOWLEDGED_OPEN_KEY if self.scenario in ACKNOWLEDGED_OPEN_SCENARIOS else WRITE_KEY
 
 
 def acknowledged_response(fixture: str) -> dict[str, object]:
@@ -350,7 +356,7 @@ class WriteHandler(BaseHTTPRequestHandler):
             if target == DISCOVERY_PATH:
                 if wire.paths or wire.post_count:
                     raise CheckError("unexpected discovery request")
-            elif wire.scenario is not Scenario.ACKNOWLEDGED_OPEN:
+            elif wire.scenario not in ACKNOWLEDGED_OPEN_SCENARIOS:
                 raise CheckError("unexpected discovery request")
             elif target != OPERATION_STATUS_PATH:
                 raise CheckError("unexpected operation status target")
@@ -369,6 +375,15 @@ class WriteHandler(BaseHTTPRequestHandler):
                     "access_point": self.server.origin,
                     "account_id": ACCOUNT,
                 }
+            elif wire.scenario is Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED and wire.status_responses:
+                status = HTTPStatus.TOO_MANY_REQUESTS
+                wire.status_responses.append(status)
+                self.send_json(
+                    status,
+                    {"code": 3015, "error_message": "REQUEST_RATE_LIMIT"},
+                    retry_after=RATE_LIMIT_RETRY_AFTER,
+                )
+                return
             else:
                 response = acknowledged_response(STATUS_FIXTURES[len(wire.status_responses)])
                 wire.status_responses.append(response["status"])
@@ -378,12 +393,16 @@ class WriteHandler(BaseHTTPRequestHandler):
         except OSError:
             wire.failure = wire.failure or "GET response did not complete"
 
-    def send_json(self, status: HTTPStatus, response: dict[str, object]) -> None:
+    def send_json(
+        self, status: HTTPStatus, response: dict[str, object], *, retry_after: str | None = None
+    ) -> None:
         body = json.dumps(response).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Connection", "close")
+        if retry_after is not None:
+            self.send_header("Retry-After", retry_after)
         self.end_headers()
         self.wfile.write(body)
 
@@ -433,7 +452,7 @@ class WriteHandler(BaseHTTPRequestHandler):
                 "idempotency_key": wire.key,
                 "acknowledgement_sent": False,
             }
-            if wire.scenario is Scenario.ACKNOWLEDGED_OPEN:
+            if wire.scenario in ACKNOWLEDGED_OPEN_SCENARIOS:
                 self.send_json(HTTPStatus.ACCEPTED, acknowledged_response("ack_accepted.json"))
                 wire.receipt["acknowledgement_sent"] = True
         except CheckError as error:
@@ -550,8 +569,8 @@ async def run_python(
                 return await run_python_trading(client, tls, scenario)
             if scenario in HMR_SCENARIOS:
                 return await run_python_hmr(client, tls, scenario)
-            if scenario is Scenario.ACKNOWLEDGED_OPEN:
-                return await run_python_acknowledged_open(client)
+            if scenario in ACKNOWLEDGED_OPEN_SCENARIOS:
+                return await run_python_acknowledged_open(client, scenario)
             error = await submit_lost_ack(client)
         report: dict[str, object] = {
             "outcome": {
@@ -610,21 +629,39 @@ async def submit_lost_ack(client: AsyncExnessClient) -> UnknownOutcomeError:
     raise CheckError("expected UnknownOutcomeError after losing the acknowledgement")
 
 
-async def run_python_acknowledged_open(client: AsyncExnessClient) -> dict[str, object]:
+async def run_python_acknowledged_open(
+    client: AsyncExnessClient, scenario: Scenario
+) -> dict[str, object]:
     ack = await submit_open_position(client, ACKNOWLEDGED_OPEN_KEY)
     reference = OperationReference.from_ack(ack, client_request_id=ACKNOWLEDGED_OPEN_KEY)
-    result = await client.wait_operation(reference, timeout=IO_TIMEOUT, poll_interval=0.01)
+    rate_limited = scenario is Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED
+    timeout = RATE_LIMIT_WAIT_TIMEOUT if rate_limited else IO_TIMEOUT
+    outcome: dict[str, object]
+    try:
+        result = await client.wait_operation(reference, timeout=timeout, poll_interval=0.01)
+    except APIError as error:
+        if not rate_limited:
+            raise
+        outcome = {
+            "error": "APIError",
+            "status_code": error.status_code,
+            "retry_after": error.retry_after,
+        }
+    else:
+        if rate_limited:
+            raise CheckError("expected APIError while waiting for open-position confirmation")
+        outcome = {
+            "status": result.status,
+            "operation_id": result.operation_id,
+            "client_request_id": result.client_request_id,
+        }
     return {
         "ack": {
             "status": ack.status,
             "operation_id": ack.operation_id,
             "client_request_id": ack.client_request_id,
         },
-        "outcome": {
-            "status": result.status,
-            "operation_id": result.operation_id,
-            "client_request_id": result.client_request_id,
-        },
+        "outcome": outcome,
     }
 
 
@@ -845,7 +882,7 @@ async def run_go(
             fields = {"accounts", "tick", "error"}
         case Scenario.LOST_ACK:
             fields = {"outcome"}
-        case Scenario.ACKNOWLEDGED_OPEN:
+        case Scenario.ACKNOWLEDGED_OPEN | Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED:
             fields = {"ack", "outcome"}
         case Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
             fields = {"order_ids", "outcome"}
@@ -901,7 +938,7 @@ async def observe(
             "post_count": write.post_count,
             "receipt": write.receipt,
         }
-        if scenario is Scenario.ACKNOWLEDGED_OPEN:
+        if scenario in ACKNOWLEDGED_OPEN_SCENARIOS:
             result["status_responses"] = write.status_responses
     if stream is not None:
         if scenario is Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
@@ -938,11 +975,7 @@ async def compare_clients(binary: Path, directory: Path) -> dict[str, object]:
             thread.start()
             try:
                 for scenario in Scenario:
-                    writes = scenario in (
-                        Scenario.LOST_ACK,
-                        Scenario.LOST_ACK_RECOVERY,
-                        Scenario.ACKNOWLEDGED_OPEN,
-                    )
+                    writes = scenario in WRITE_SCENARIOS
                     stream = (
                         script if not writes or scenario is Scenario.LOST_ACK_RECOVERY else None
                     )

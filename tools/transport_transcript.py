@@ -46,6 +46,7 @@ class Scenario(StrEnum):
     LOST_ACK = "lost_ack"
     LOST_ACK_RECOVERY = "lost_ack_recovery"
     ACKNOWLEDGED_OPEN = "acknowledged_open"
+    ACKNOWLEDGED_OPEN_RATE_LIMITED = "acknowledged_open_rate_limited"
     HMR_RECOVERY = "hmr_recovery"
     HMR_MISSING_SNAPSHOT = "hmr_missing_snapshot"
     ORDERS_HISTORY_REPEATED_CURSOR = "orders_history_repeated_cursor"
@@ -129,6 +130,20 @@ LOST_ACK_WIRE = {
         "idempotency_key": WRITE_KEY,
     },
 }
+ACKNOWLEDGED_OPEN_WIRE = {
+    "paths": [DISCOVERY_PATH, POSITIONS_PATH, OPERATION_STATUS_PATH, OPERATION_STATUS_PATH],
+    "post_count": 1,
+    "receipt": {
+        **OPEN_RECEIPT,
+        "idempotency_key": ACKNOWLEDGED_OPEN_KEY,
+        "acknowledgement_sent": True,
+    },
+    "ack": {
+        "status": "accepted",
+        "operation_id": "000789",
+        "client_request_id": ACKNOWLEDGED_OPEN_KEY,
+    },
+}
 EXPECTED: dict[Scenario, dict[str, object]] = {
     Scenario.REST_TICKS: EXPECTED_TICKS,
     Scenario.ORDERS_HISTORY_REPEATED_CURSOR: {
@@ -198,24 +213,18 @@ EXPECTED: dict[Scenario, dict[str, object]] = {
         ],
     },
     Scenario.ACKNOWLEDGED_OPEN: {
-        "paths": [DISCOVERY_PATH, POSITIONS_PATH, OPERATION_STATUS_PATH, OPERATION_STATUS_PATH],
-        "post_count": 1,
-        "receipt": {
-            **OPEN_RECEIPT,
-            "idempotency_key": ACKNOWLEDGED_OPEN_KEY,
-            "acknowledgement_sent": True,
-        },
+        **ACKNOWLEDGED_OPEN_WIRE,
         "status_responses": ["pending", "confirmed"],
-        "ack": {
-            "status": "accepted",
-            "operation_id": "000789",
-            "client_request_id": ACKNOWLEDGED_OPEN_KEY,
-        },
         "outcome": {
             "status": "confirmed",
             "operation_id": "000789",
             "client_request_id": ACKNOWLEDGED_OPEN_KEY,
         },
+    },
+    Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED: {
+        **ACKNOWLEDGED_OPEN_WIRE,
+        "status_responses": ["pending", 429],
+        "outcome": {"error": "APIError", "status_code": 429, "retry_after": "7"},
     },
 }
 
