@@ -106,6 +106,8 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 		return runHMR(ctx, client, 1)
 	case "hmr_missing_snapshot":
 		return runHMR(ctx, client, 2)
+	case "instrument_recovery":
+		return runInstruments(ctx, client)
 	case "acknowledged_open", "acknowledged_open_rate_limited":
 		return runAcknowledgedOpen(ctx, client, scenario == "acknowledged_open_rate_limited")
 	case "lost_ack", "lost_ack_recovery":
@@ -440,6 +442,46 @@ func runHMR(ctx context.Context, client *exness.Client, reconnects int) error {
 	}
 	if ctx.Err() != nil {
 		return errors.New("HMR scenario timed out")
+	}
+	return json.NewEncoder(os.Stdout).Encode(report)
+}
+
+func runInstruments(ctx context.Context, client *exness.Client) error {
+	options := exness.ServerStreamOptions{
+		OpenTimeout:    3 * time.Second,
+		MaxReconnects:  2, // A normal close must stop while a reconnect is still available.
+		ReconnectDelay: 10 * time.Millisecond,
+	}
+	report := streamTranscript{Events: []map[string]any{}, Outcome: "normal_close"}
+	for event, err := range client.StreamInstruments(ctx, []string{"EURUSD"}, options) {
+		if err != nil {
+			return errors.New("unexpected instrument stream error")
+		}
+		switch {
+		case event.Instrument != nil && event.Gap == nil:
+			instrument := event.Instrument
+			payload := instrument.Payload
+			report.Events = append(report.Events, map[string]any{
+				"kind":         "instrument",
+				"event_type":   instrument.EventType,
+				"action":       instrument.Action,
+				"instrument":   payload.Instrument,
+				"point_digits": payload.PointDigits,
+				"trade_mode":   payload.TradeMode,
+				"volume_min":   payload.VolumeMin,
+			})
+		case event.Gap != nil && event.Instrument == nil:
+			report.Events = append(report.Events, map[string]any{
+				"kind":              "gap",
+				"reconnect_attempt": event.Gap.ReconnectAttempt,
+				"close_code":        event.Gap.CloseCode,
+			})
+		default:
+			return errors.New("unexpected instrument stream event")
+		}
+	}
+	if ctx.Err() != nil {
+		return errors.New("instrument scenario timed out")
 	}
 	return json.NewEncoder(os.Stdout).Encode(report)
 }

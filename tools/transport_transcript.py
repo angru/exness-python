@@ -50,6 +50,7 @@ class Scenario(StrEnum):
     HMR_RECOVERY = "hmr_recovery"
     HMR_MISSING_SNAPSHOT = "hmr_missing_snapshot"
     ORDERS_HISTORY_REPEATED_CURSOR = "orders_history_repeated_cursor"
+    INSTRUMENT_RECOVERY = "instrument_recovery"
 
 
 EXPECTED_TICKS = {
@@ -81,6 +82,14 @@ HMR_WIRE = {
         {"event": "hmr", "instruments": ["EURUSD"]},
         {"event": "hmr", "instruments": ["EURUSD"]},
     ],
+}
+INSTRUMENT_OBSERVATION = {
+    "kind": "instrument",
+    "event_type": "instrument_event",
+    "instrument": "EURUSD",
+    "point_digits": 5,
+    "trade_mode": "enabled",
+    "volume_min": "0.01",
 }
 HMR_PERIODIC = {
     "period_id": "702",
@@ -191,6 +200,20 @@ EXPECTED: dict[Scenario, dict[str, object]] = {
         **HMR_WIRE,
         "events": HMR_START,
         "outcome": "ProtocolError",
+    },
+    Scenario.INSTRUMENT_RECOVERY: {
+        "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
+        "subscriptions": [
+            {"event": "instruments", "instruments": ["EURUSD"]},
+            {"event": "instruments", "instruments": ["EURUSD"]},
+        ],
+        "events": [
+            {**INSTRUMENT_OBSERVATION, "action": "new"},
+            {"kind": "gap", "reconnect_attempt": 1, "close_code": 1012},
+            {**INSTRUMENT_OBSERVATION, "action": "upd"},
+            {**INSTRUMENT_OBSERVATION, "action": "del"},
+        ],
+        "outcome": "normal_close",
     },
     Scenario.LOST_ACK: LOST_ACK_WIRE,
     Scenario.LOST_ACK_RECOVERY: {

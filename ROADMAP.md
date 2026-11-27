@@ -175,3 +175,4 @@ Worker Board completed implementation, verification and independent review for e
 - [x] [Compare HMR reconnect with a fresh empty snapshot and rejection of updates before a snapshot](https://github.com/angru/exness-python/issues/24).
 - [x] [Compare signed order history pagination and repeated-cursor termination](https://github.com/angru/exness-python/issues/26).
 - [x] [Compare rate-limited status reads after an acknowledged open-position submission](https://github.com/angru/exness-python/issues/28).
+- [x] [Compare instrument-event resubscription with an explicit EURUSD selection and no initial snapshot](https://github.com/angru/exness-python/issues/30).
