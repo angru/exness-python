@@ -107,6 +107,7 @@ verify the synthetic signature against the received request target.
 | `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
 | `hmr_recovery` | A nonempty HMR snapshot, one gap for close `1012`, a fresh snapshot with an empty `periods` list, and a valid HMR update. Close `1000` ends the stream normally. |
 | `hmr_missing_snapshot` | The same initial HMR snapshot and gap. The second connection starts with the identical valid update, yielding the missing-snapshot `ProtocolError`. Neither client yields the update or makes a third connection, with one reconnect still available. |
+| `instrument_recovery` | A new EURUSD event, one gap for close `1012`, an ordinary update as the first event after resubscription, and a deletion. Close `1000` ends the stream with one reconnect still available. |
 | `lost_ack` | Signed discovery, then one signed open-position POST for EURUSD, buy, volume `0.01`. The fixture reads the complete bounded body and closes the connection without sending an HTTP response. Both SDKs return `UnknownOutcomeError` with the original synthetic idempotency key, account, method and path. |
 | `lost_ack_recovery` | Each client submits one open-position POST and uses the key preserved by `UnknownOutcomeError` to correlate a terminal result from a fresh transactions subscription. The snapshot leaves the result unset, the foreign success is ignored, and the matching rejection is selected. |
 | `acknowledged_open` | After signed discovery, one verified open-position POST receives HTTP 202 with the caller key and an operation ID. The same client builds a reference from that ACK and waits for confirmation with two signed status reads. |
@@ -114,8 +115,9 @@ verify the synthetic signature against the received request target.
 
 The reconnect scenarios expect one signed discovery and two signed upgrades to the
 events endpoint. Both subscriptions use distinct nonempty request IDs. The trading
-scenarios select `transactions`. The HMR scenarios select `hmr` with the explicit
-instrument list `["EURUSD"]` on both connections. The check compares each client's
+scenarios select `transactions`. The HMR and instrument scenarios select `hmr`
+and `instruments`, respectively, with the explicit instrument list `["EURUSD"]`
+on both connections. The check compares each client's
 transcript against the expected paths, subscription payloads, event order, selected
 values and outcome, then compares the transcripts with each other. The report
 excludes generated request IDs, timestamps, ports, credentials and signed headers.
@@ -135,6 +137,11 @@ the check even if the consumer suppresses the HTTP error.
 The HMR scenarios reuse `hmr_snapshot`, `hmr_empty_snapshot` and `hmr_update`.
 The check compares the gap attempt and close code, period identifiers, event types,
 instruments, leverage, exact schedule strings and removed period IDs.
+
+The instrument scenario reuses `instrument_new`, `instrument_upd` and
+`instrument_del` and sends no initial snapshot on either connection. The check
+compares the gap attempt and close code, event type, action, instrument identity,
+point digits, trade mode and minimum volume as a decimal string.
 
 For `lost_ack`, the fixture verifies the Ed25519 signature against the received
 method, raw request target, exact body hash and idempotency header. It checks the

@@ -92,17 +92,35 @@ def test_hmr_missing_snapshot_rejects_extra_events(extra_event: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "subscription", [{"event": "hmr"}, {"event": "hmr", "instruments": ["all"]}]
+    ("scenario", "event"),
+    [(Scenario.HMR_RECOVERY, "hmr"), (Scenario.INSTRUMENT_RECOVERY, "instruments")],
 )
-def test_hmr_requires_explicit_instrument_on_both_connections(
-    subscription: dict[str, object],
+@pytest.mark.parametrize("selection", [{}, {"instruments": ["all"]}])
+def test_recovery_requires_explicit_instrument_on_resubscription(
+    scenario: Scenario, event: str, selection: dict[str, object]
 ) -> None:
-    scenario = Scenario.HMR_RECOVERY
     expected = EXPECTED[scenario]
     first, _ = cast(list[object], expected["subscriptions"])
-    wrong = {**expected, "subscriptions": [first, subscription]}
+    wrong = {**expected, "subscriptions": [first, {"event": event, **selection}]}
     with pytest.raises(ValueError, match=f"{scenario}: Go transcript mismatch: subscriptions"):
         compare_transcripts(scenario, expected, wrong)
+
+
+@pytest.mark.parametrize("failure", ["missing_update", "reordered", "wrong_gap", "wrong_volume"])
+def test_instrument_recovery_requires_ordered_events_and_model_values(failure: str) -> None:
+    scenario = Scenario.INSTRUMENT_RECOVERY
+    wrong = copy.deepcopy(EXPECTED[scenario])
+    events = cast(list[dict[str, object]], wrong["events"])
+    if failure == "missing_update":
+        del events[2]
+    elif failure == "reordered":
+        events[2], events[3] = events[3], events[2]
+    elif failure == "wrong_gap":
+        events[1]["close_code"] = 1000
+    else:
+        events[2]["volume_min"] = "0.1"
+    with pytest.raises(ValueError, match=f"{scenario}: Python transcript mismatch: events"):
+        compare_transcripts(scenario, wrong, wrong)
 
 
 @pytest.mark.parametrize("field", ["error", "account_id", "method", "path", "idempotency_key"])

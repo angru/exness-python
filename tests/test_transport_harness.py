@@ -567,6 +567,13 @@ def test_hmr_frames_match_pinned_schema() -> None:
     contract_validator("WSHmrUpdateEvent").validate(json.loads(script.hmr_update))
 
 
+def test_instrument_frames_match_pinned_schema() -> None:
+    script = transport.FixtureServer()
+    validator = contract_validator("WSInstrumentEvent")
+    for frame in (script.instrument_new, script.instrument_upd, script.instrument_del):
+        validator.validate(json.loads(frame))
+
+
 def test_order_history_pages_match_pinned_schema() -> None:
     validator = contract_validator("OrdersHistoryResponse")
     first, second = (json.loads(page) for page in transport.FixtureServer().orders_pages)
@@ -583,6 +590,7 @@ def test_order_history_pages_match_pinned_schema() -> None:
     [
         (Scenario.TRADING_RECOVERY, "trading_subscription"),
         (Scenario.HMR_RECOVERY, "hmr_subscription"),
+        (Scenario.INSTRUMENT_RECOVERY, "instruments_subscription"),
     ],
 )
 async def test_subscription_id_must_change_on_reconnect(scenario: Scenario, fixture: str) -> None:
@@ -620,7 +628,12 @@ def test_recovery_discovery_requires_verified_post_receipt() -> None:
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "scenario", [Scenario.TRADING_MISSING_SNAPSHOT, Scenario.HMR_MISSING_SNAPSHOT]
+    "scenario",
+    [
+        Scenario.TRADING_MISSING_SNAPSHOT,
+        Scenario.HMR_MISSING_SNAPSHOT,
+        Scenario.INSTRUMENT_RECOVERY,
+    ],
 )
 async def test_third_upgrade_is_rejected_even_if_driver_finishes(scenario: Scenario) -> None:
     script = transport.FixtureServer()

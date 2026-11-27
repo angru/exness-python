@@ -47,7 +47,7 @@ from exness import (
     TradingStreamGap,
     UnknownOutcomeError,
 )
-from exness.events import HmrSnapshot, HmrUpdate
+from exness.events import HmrSnapshot, HmrUpdate, InstrumentEvent
 from exness.models import AckResponse, Tick
 from exness.requests import OpenPositionRequest
 from exness.trading import TradingEvent, TradingSnapshotEvent, TransactionEvent
@@ -92,6 +92,7 @@ ACKNOWLEDGED_OPEN_SCENARIOS = (Scenario.ACKNOWLEDGED_OPEN, Scenario.ACKNOWLEDGED
 WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY, *ACKNOWLEDGED_OPEN_SCENARIOS)
 HMR_SCENARIOS = (Scenario.HMR_RECOVERY, Scenario.HMR_MISSING_SNAPSHOT)
 TRADING_RECONNECT_SCENARIOS = (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT)
+RECONNECT_SCENARIOS = (*TRADING_RECONNECT_SCENARIOS, *HMR_SCENARIOS, Scenario.INSTRUMENT_RECOVERY)
 
 
 class CheckError(Exception):
@@ -116,7 +117,7 @@ class WireTranscript:
 
     @property
     def expected_connections(self) -> int:
-        return 2 if self.scenario in (*TRADING_RECONNECT_SCENARIOS, *HMR_SCENARIOS) else 1
+        return 2 if self.scenario in RECONNECT_SCENARIOS else 1
 
 
 class FixtureServer:
@@ -137,6 +138,9 @@ class FixtureServer:
         self.hmr_snapshot = (FIXTURES / "hmr_snapshot.json").read_text(encoding="utf-8")
         self.hmr_empty_snapshot = (FIXTURES / "hmr_empty_snapshot.json").read_text(encoding="utf-8")
         self.hmr_update = (FIXTURES / "hmr_update.json").read_text(encoding="utf-8")
+        self.instrument_new = (FIXTURES / "instrument_new.json").read_text(encoding="utf-8")
+        self.instrument_upd = (FIXTURES / "instrument_upd.json").read_text(encoding="utf-8")
+        self.instrument_del = (FIXTURES / "instrument_del.json").read_text(encoding="utf-8")
         replacement = json.loads(self.snapshot)
         replacement["payload"]["account_state"]["balance"] = "12345678901234567790.113456789"
         self.replacement_snapshot = json.dumps(replacement)
@@ -256,6 +260,14 @@ class FixtureServer:
                 await ws.send(self.hmr_update)
                 if wire.scenario is Scenario.HMR_RECOVERY:
                     await ws.close(code=1000)
+        elif wire.scenario is Scenario.INSTRUMENT_RECOVERY:
+            if len(wire.subscriptions) == 1:
+                await ws.send(self.instrument_new)
+                await ws.close(code=1012)
+            else:
+                await ws.send(self.instrument_upd)
+                await ws.send(self.instrument_del)
+                await ws.close(code=1000)
         elif len(wire.subscriptions) == 1:
             await ws.send(self.snapshot)
             await ws.send(self.partial_close)
@@ -569,6 +581,8 @@ async def run_python(
                 return await run_python_trading(client, tls, scenario)
             if scenario in HMR_SCENARIOS:
                 return await run_python_hmr(client, tls, scenario)
+            if scenario is Scenario.INSTRUMENT_RECOVERY:
+                return await run_python_instruments(client, tls)
             if scenario in ACKNOWLEDGED_OPEN_SCENARIOS:
                 return await run_python_acknowledged_open(client, scenario)
             error = await submit_lost_ack(client)
@@ -766,6 +780,45 @@ async def run_python_hmr(
                 raise CheckError("unexpected HMR protocol error") from None
             outcome = "ProtocolError"
     return {"events": events, "outcome": outcome}
+
+
+async def run_python_instruments(
+    client: AsyncExnessClient, tls: ssl.SSLContext
+) -> dict[str, object]:
+    options = ServerStreamOptions(
+        open_timeout=IO_TIMEOUT,
+        # A normal close must stop the stream with another reconnect available.
+        max_reconnects=2,
+        reconnect_delay=0.01,
+    )
+    events: list[dict[str, object]] = []
+    async with aclosing(
+        client.stream_instruments([INSTRUMENT], options=options, ssl_context=tls)
+    ) as stream:
+        async for event in stream:
+            if isinstance(event, InstrumentEvent):
+                payload = event.payload
+                volume_min = payload.volume_min
+                events.append(
+                    {
+                        "kind": "instrument",
+                        "event_type": event.event_type,
+                        "action": event.action,
+                        "instrument": payload.instrument,
+                        "point_digits": payload.point_digits,
+                        "trade_mode": payload.trade_mode,
+                        "volume_min": format(volume_min, "f") if volume_min is not None else None,
+                    }
+                )
+            else:
+                events.append(
+                    {
+                        "kind": "gap",
+                        "reconnect_attempt": event.reconnect_attempt,
+                        "close_code": event.close_code,
+                    }
+                )
+    return {"events": events, "outcome": "normal_close"}
 
 
 async def run_python_lost_ack_recovery(
