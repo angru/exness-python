@@ -104,18 +104,25 @@ verify the synthetic signature against the received request target.
 | `rest_ticks` | Two account reads after one discovery, then an EURUSD tick followed by `ProtocolError` for a malformed frame. |
 | `trading_recovery` | Snapshot, partial-close transaction, one gap for close `1012`, a fresh snapshot with a different balance, and a balance transaction. Close `1000` ends the stream normally. |
 | `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
+| `hmr_recovery` | A nonempty HMR snapshot, one gap for close `1012`, a fresh snapshot with an empty `periods` list, and a valid HMR update. Close `1000` ends the stream normally. |
+| `hmr_missing_snapshot` | The same initial HMR snapshot and gap. The second connection starts with the identical valid update, yielding the missing-snapshot `ProtocolError`. Neither client yields the update or makes a third connection, with one reconnect still available. |
 | `lost_ack` | Signed discovery, then one signed open-position POST for EURUSD, buy, volume `0.01`. The fixture reads the complete bounded body and closes the connection without sending an HTTP response. Both SDKs return `UnknownOutcomeError` with the original synthetic idempotency key, account, method and path. |
 | `lost_ack_recovery` | Each client submits one open-position POST and uses the key preserved by `UnknownOutcomeError` to correlate a terminal result from a fresh transactions subscription. The snapshot leaves the result unset, the foreign success is ignored, and the matching rejection is selected. |
 | `acknowledged_open` | After signed discovery, one verified open-position POST receives HTTP 202 with the caller key and an operation ID. The same client builds a reference from that ACK and waits for confirmation with two signed status reads. |
 
 The reconnect scenarios expect one signed discovery and two signed upgrades to the
-events endpoint. Both subscriptions must select `transactions` and use distinct
-nonempty request IDs. Each client's transcript is checked against the expected
-paths, subscription payloads, event order, selected values and outcome, then
-compared with the other client's transcript. The report excludes generated request
-IDs, timestamps, ports, credentials and signed headers. The trading scenarios
-reuse the shared fixtures, with the replacement snapshot derived locally from the
-shared snapshot by changing its balance.
+events endpoint. Both subscriptions use distinct nonempty request IDs. The trading
+scenarios select `transactions`. The HMR scenarios select `hmr` with the explicit
+instrument list `["EURUSD"]` on both connections. The check compares each client's
+transcript against the expected paths, subscription payloads, event order, selected
+values and outcome, then compares the transcripts with each other. The report
+excludes generated request IDs, timestamps, ports, credentials and signed headers.
+The trading scenarios reuse the shared fixtures, with the replacement snapshot
+derived locally from the shared snapshot by changing its balance.
+
+The HMR scenarios reuse `hmr_snapshot`, `hmr_empty_snapshot` and `hmr_update`.
+The check compares the gap attempt and close code, period identifiers, event types,
+instruments, leverage, exact schedule strings and removed period IDs.
 
 For `lost_ack`, the fixture verifies the Ed25519 signature against the received
 method, raw request target, exact body hash and idempotency header. It checks the
@@ -165,7 +172,7 @@ and cleanliness before and after the check, builds the consumer in a temporary
 module against the supplied checkout, and disables Go module fetching during
 the build. Loopback socket binding is required. The command exits nonzero for
 checkout, build, transport or transcript failures. The Python parity job checks
-the Go consumer with `gofmt` and runs all six scenarios in its existing loopback
+the Go consumer with `gofmt` and runs the transport scenarios in its loopback
 TLS step against the pinned Go checkout.
 
 ## CI and updating a compatible pair

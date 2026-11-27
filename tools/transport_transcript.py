@@ -33,6 +33,8 @@ class Scenario(StrEnum):
     LOST_ACK = "lost_ack"
     LOST_ACK_RECOVERY = "lost_ack_recovery"
     ACKNOWLEDGED_OPEN = "acknowledged_open"
+    HMR_RECOVERY = "hmr_recovery"
+    HMR_MISSING_SNAPSHOT = "hmr_missing_snapshot"
 
 
 EXPECTED_TICKS = {
@@ -58,6 +60,39 @@ TRADING_WIRE = {
     "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
     "subscriptions": [{"event": "transactions"}, {"event": "transactions"}],
 }
+HMR_WIRE = {
+    "paths": [DISCOVERY_PATH, TRADING_PATH, TRADING_PATH],
+    "subscriptions": [
+        {"event": "hmr", "instruments": ["EURUSD"]},
+        {"event": "hmr", "instruments": ["EURUSD"]},
+    ],
+}
+HMR_PERIODIC = {
+    "period_id": "702",
+    "event_type": "periodic",
+    "instruments": ["EURUSD"],
+    "leverage": "20",
+    "start_time": "Mon, 13:00:00",
+    "end_time": "Mon, 14:00:00",
+}
+HMR_START = [
+    {
+        "kind": "snapshot",
+        "event_type": "hmr_snapshot",
+        "periods": [
+            {
+                "period_id": "701",
+                "event_type": "regular",
+                "instruments": ["EURUSD", "EURGBP"],
+                "leverage": "10",
+                "start_time": "2026-11-19 11:00:00",
+                "end_time": "2026-11-19 12:00:00",
+            },
+            HMR_PERIODIC,
+        ],
+    },
+    {"kind": "gap", "reconnect_attempt": 1, "close_code": 1012},
+]
 OPEN_RECEIPT = {
     "method": "POST",
     "path": POSITIONS_PATH,
@@ -101,6 +136,25 @@ EXPECTED: dict[Scenario, dict[str, object]] = {
     Scenario.TRADING_MISSING_SNAPSHOT: {
         **TRADING_WIRE,
         "events": TRADING_START,
+        "outcome": "ProtocolError",
+    },
+    Scenario.HMR_RECOVERY: {
+        **HMR_WIRE,
+        "events": [
+            *HMR_START,
+            {"kind": "snapshot", "event_type": "hmr_snapshot", "periods": []},
+            {
+                "kind": "update",
+                "event_type": "hmr_update",
+                "upserted_periods": [{**HMR_PERIODIC, "leverage": "30"}],
+                "removed_period_ids": ["701", "999"],
+            },
+        ],
+        "outcome": "normal_close",
+    },
+    Scenario.HMR_MISSING_SNAPSHOT: {
+        **HMR_WIRE,
+        "events": HMR_START,
         "outcome": "ProtocolError",
     },
     Scenario.LOST_ACK: LOST_ACK_WIRE,

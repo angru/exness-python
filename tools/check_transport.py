@@ -39,10 +39,12 @@ from exness import (
     ExnessError,
     OperationReference,
     ProtocolError,
+    ServerStreamOptions,
     StreamOptions,
     TradingStreamGap,
     UnknownOutcomeError,
 )
+from exness.events import HmrSnapshot, HmrUpdate
 from exness.models import AckResponse, Tick
 from exness.requests import OpenPositionRequest
 from exness.trading import TradingEvent, TradingSnapshotEvent, TransactionEvent
@@ -76,6 +78,8 @@ PEER_TIMEOUT = 15
 BUILD_TIMEOUT = 120
 MAX_ORDER_BODY = 1024
 STATUS_FIXTURES = ("operation_pending.json", "operation_confirmed.json")
+HMR_SCENARIOS = (Scenario.HMR_RECOVERY, Scenario.HMR_MISSING_SNAPSHOT)
+TRADING_RECONNECT_SCENARIOS = (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT)
 
 
 class CheckError(Exception):
@@ -99,11 +103,7 @@ class WireTranscript:
 
     @property
     def expected_connections(self) -> int:
-        return (
-            2
-            if self.scenario in (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT)
-            else 1
-        )
+        return 2 if self.scenario in (*TRADING_RECONNECT_SCENARIOS, *HMR_SCENARIOS) else 1
 
 
 class FixtureServer:
@@ -117,6 +117,9 @@ class FixtureServer:
             encoding="utf-8"
         )
         self.balance = (FIXTURES / "transaction_balance.json").read_text(encoding="utf-8")
+        self.hmr_snapshot = (FIXTURES / "hmr_snapshot.json").read_text(encoding="utf-8")
+        self.hmr_empty_snapshot = (FIXTURES / "hmr_empty_snapshot.json").read_text(encoding="utf-8")
+        self.hmr_update = (FIXTURES / "hmr_update.json").read_text(encoding="utf-8")
         replacement = json.loads(self.snapshot)
         replacement["payload"]["account_state"]["balance"] = "12345678901234567790.113456789"
         self.replacement_snapshot = json.dumps(replacement)
@@ -211,6 +214,16 @@ class FixtureServer:
             await ws.send(self.foreign_transaction)
             await ws.send(self.matching_transaction)
             await ws.close(code=1000)
+        elif wire.scenario in HMR_SCENARIOS:
+            if len(wire.subscriptions) == 1:
+                await ws.send(self.hmr_snapshot)
+                await ws.close(code=1012)
+            else:
+                if wire.scenario is Scenario.HMR_RECOVERY:
+                    await ws.send(self.hmr_empty_snapshot)
+                await ws.send(self.hmr_update)
+                if wire.scenario is Scenario.HMR_RECOVERY:
+                    await ws.close(code=1000)
         elif len(wire.subscriptions) == 1:
             await ws.send(self.snapshot)
             await ws.send(self.partial_close)
@@ -486,8 +499,10 @@ async def run_python(
         async with make_client(origin) as client:
             if scenario is Scenario.REST_TICKS:
                 return await run_python_ticks(client, tls)
-            if scenario in (Scenario.TRADING_RECOVERY, Scenario.TRADING_MISSING_SNAPSHOT):
+            if scenario in TRADING_RECONNECT_SCENARIOS:
                 return await run_python_trading(client, tls, scenario)
+            if scenario in HMR_SCENARIOS:
+                return await run_python_hmr(client, tls, scenario)
             if scenario is Scenario.ACKNOWLEDGED_OPEN:
                 return await run_python_acknowledged_open(client)
             error = await submit_lost_ack(client)
@@ -609,6 +624,40 @@ async def run_python_trading(
             async for event in stream:
                 events.append(trading_observation(event))
         except ProtocolError:
+            outcome = "ProtocolError"
+    return {"events": events, "outcome": outcome}
+
+
+async def run_python_hmr(
+    client: AsyncExnessClient, tls: ssl.SSLContext, scenario: Scenario
+) -> dict[str, object]:
+    options = ServerStreamOptions(
+        open_timeout=IO_TIMEOUT,
+        max_reconnects=2 if scenario is Scenario.HMR_MISSING_SNAPSHOT else 1,
+        reconnect_delay=0.01,
+    )
+    events: list[dict[str, object]] = []
+    outcome = "normal_close"
+    async with aclosing(
+        client.stream_hmr([INSTRUMENT], options=options, ssl_context=tls)
+    ) as stream:
+        try:
+            async for event in stream:
+                if isinstance(event, HmrSnapshot):
+                    events.append({"kind": "snapshot", **event.model_dump(mode="json")})
+                elif isinstance(event, HmrUpdate):
+                    events.append({"kind": "update", **event.model_dump(mode="json")})
+                else:
+                    events.append(
+                        {
+                            "kind": "gap",
+                            "reconnect_attempt": event.reconnect_attempt,
+                            "close_code": event.close_code,
+                        }
+                    )
+        except ProtocolError as error:
+            if str(error) != "HMR update received before HMR snapshot":
+                raise CheckError("unexpected HMR protocol error") from None
             outcome = "ProtocolError"
     return {"events": events, "outcome": outcome}
 

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	exness "github.com/angru/exness-go"
@@ -32,7 +33,7 @@ type tickTranscript struct {
 	Error    string      `json:"error"`
 }
 
-type tradingTranscript struct {
+type streamTranscript struct {
 	Events  []map[string]any `json:"events"`
 	Outcome string           `json:"outcome"`
 }
@@ -99,6 +100,10 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	case "trading_missing_snapshot":
 		// A protocol error must stop recovery while a second retry is available.
 		return runTrading(ctx, client, 2)
+	case "hmr_recovery":
+		return runHMR(ctx, client, 1)
+	case "hmr_missing_snapshot":
+		return runHMR(ctx, client, 2)
 	case "acknowledged_open":
 		return runAcknowledgedOpen(ctx, client)
 	case "lost_ack", "lost_ack_recovery":
@@ -270,7 +275,7 @@ func runTrading(ctx context.Context, client *exness.Client, reconnects int) erro
 		MaxReconnects:  reconnects,
 		ReconnectDelay: 10 * time.Millisecond,
 	}
-	report := tradingTranscript{Events: []map[string]any{}, Outcome: "normal_close"}
+	report := streamTranscript{Events: []map[string]any{}, Outcome: "normal_close"}
 	for event, err := range client.StreamTrading(ctx, options) {
 		if report.Outcome == "ProtocolError" {
 			return errors.New("unexpected trading stream item after protocol error")
@@ -326,6 +331,60 @@ func tradingObservation(event exness.TradingStreamEvent) map[string]any {
 	default:
 		return nil
 	}
+}
+
+func runHMR(ctx context.Context, client *exness.Client, reconnects int) error {
+	options := exness.ServerStreamOptions{
+		OpenTimeout:    3 * time.Second,
+		MaxReconnects:  reconnects,
+		ReconnectDelay: 10 * time.Millisecond,
+	}
+	report := streamTranscript{Events: []map[string]any{}, Outcome: "normal_close"}
+	for event, err := range client.StreamHMR(ctx, []string{"EURUSD"}, options) {
+		if report.Outcome == "ProtocolError" {
+			return errors.New("unexpected HMR stream item after protocol error")
+		}
+		if err != nil {
+			var protocol *exness.ProtocolError
+			if !errors.As(err, &protocol) || event.Snapshot != nil || event.Update != nil || event.Gap != nil {
+				return errors.New("unexpected HMR stream error")
+			}
+			message := strings.ToLower(protocol.Error())
+			if !strings.Contains(message, "hmr update") ||
+				!strings.Contains(message, "before") || !strings.Contains(message, "snapshot") {
+				return errors.New("unexpected HMR protocol error")
+			}
+			report.Outcome = "ProtocolError"
+			continue
+		}
+		switch {
+		case event.Snapshot != nil && event.Update == nil && event.Gap == nil:
+			report.Events = append(report.Events, map[string]any{
+				"kind":       "snapshot",
+				"event_type": event.Snapshot.EventType,
+				"periods":    event.Snapshot.Periods,
+			})
+		case event.Update != nil && event.Snapshot == nil && event.Gap == nil:
+			report.Events = append(report.Events, map[string]any{
+				"kind":               "update",
+				"event_type":         event.Update.EventType,
+				"upserted_periods":   event.Update.UpsertedPeriods,
+				"removed_period_ids": event.Update.RemovedPeriodIDs,
+			})
+		case event.Gap != nil && event.Snapshot == nil && event.Update == nil:
+			report.Events = append(report.Events, map[string]any{
+				"kind":              "gap",
+				"reconnect_attempt": event.Gap.ReconnectAttempt,
+				"close_code":        event.Gap.CloseCode,
+			})
+		default:
+			return errors.New("unexpected HMR stream event")
+		}
+	}
+	if ctx.Err() != nil {
+		return errors.New("HMR scenario timed out")
+	}
+	return json.NewEncoder(os.Stdout).Encode(report)
 }
 
 func main() {
