@@ -6,7 +6,7 @@ from http import HTTPStatus
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit
 
 import httpx
 import pytest
@@ -23,6 +23,7 @@ from websockets.server import ServerProtocol
 from exness import (
     AsyncExnessClient,
     Credentials,
+    ExnessError,
     OperationReference,
     TransportError,
     UnknownOutcomeError,
@@ -37,6 +38,9 @@ from tools.transport_transcript import (
     DISCOVERY_PATH,
     EXPECTED,
     OPERATION_STATUS_PATH,
+    ORDERS_HISTORY_PATH,
+    ORDERS_LIMIT,
+    ORDERS_QUERIES,
     POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
@@ -45,7 +49,7 @@ from tools.transport_transcript import (
 )
 
 WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY, Scenario.ACKNOWLEDGED_OPEN)
-STREAM_SCENARIOS = [scenario for scenario in Scenario if scenario not in WRITE_SCENARIOS]
+LOOPBACK_SCENARIOS = [scenario for scenario in Scenario if scenario not in WRITE_SCENARIOS]
 
 
 @pytest.mark.anyio
@@ -77,7 +81,7 @@ async def test_each_tls_listener_serves_separate_python_runs(
     monkeypatch.setattr(transport, "run_python", python_peer)
     monkeypatch.setattr(transport, "run_go", second_peer)
     assert await transport.compare_clients(tmp_path / "driver", tmp_path) == EXPECTED
-    stream_origins = {origin for origin, scenario, _ in runs if scenario in STREAM_SCENARIOS}
+    stream_origins = {origin for origin, scenario, _ in runs if scenario in LOOPBACK_SCENARIOS}
     write_origins = {origin for origin, scenario, _ in runs if scenario in WRITE_SCENARIOS}
     assert len(stream_origins) == len(write_origins) == 1
     assert stream_origins.isdisjoint(write_origins)
@@ -116,7 +120,7 @@ class MemorySocket:
 @pytest.mark.parametrize(
     ("scenario", "failure"),
     [
-        *((scenario, None) for scenario in STREAM_SCENARIOS),
+        *((scenario, None) for scenario in LOOPBACK_SCENARIOS),
         (Scenario.HMR_MISSING_SNAPSHOT, "unexpected HMR protocol error"),
         (Scenario.LOST_ACK_RECOVERY, None),
         (Scenario.LOST_ACK_RECOVERY, "expected a matching terminal transaction"),
@@ -390,6 +394,105 @@ async def test_acknowledged_open_without_sockets(
     assert observation.paths == [DISCOVERY_PATH, POSITIONS_PATH, *([OPERATION_STATUS_PATH] * polls)]
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("case", "failure", "pages"),
+    [
+        ("equivalent_encoding", None, 2),
+        ("changed_cursor", "unexpected order history query", 1),
+        ("duplicate_cursor", "invalid order history query", 1),
+        ("extra_filter", "unexpected order history query", 1),
+        ("changed_encoding", "invalid signature for received request", 1),
+        ("bad_signature", "invalid signature for received request", 1),
+        ("extra_request", "unexpected extra request", 2),
+    ],
+)
+async def test_order_history_request_validation_without_sockets(
+    monkeypatch: pytest.MonkeyPatch,
+    credentials: Credentials,
+    case: str,
+    failure: str | None,
+    pages: int,
+) -> None:
+    scenario = Scenario.ORDERS_HISTORY_REPEATED_CURSOR
+    script = transport.FixtureServer()
+    script.origin = "https://127.0.0.1"
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ws = Mock(respond=ServerProtocol().reject)
+    signer = _Signer(credentials)
+    observation: transport.WireTranscript | None = None
+
+    def dispatch(request: httpx.Request) -> httpx.Response:
+        nonlocal observation
+        observation = script.active
+        assert observation is not None
+        target = request.url.raw_path.decode("ascii")
+        headers = Headers(request.headers.multi_items())
+        if request.url.path == ORDERS_HISTORY_PATH:
+            if case == "equivalent_encoding":
+                pairs = parse_qsl(request.url.query.decode("ascii"))
+                query = urlencode(
+                    [
+                        (key, value.replace("+00:00", "Z") if key == "from" else value)
+                        for key, value in reversed(pairs)
+                    ],
+                    quote_via=quote,
+                )
+                target = f"{ORDERS_HISTORY_PATH}?{query}"
+                headers = Headers(signer.get_headers(target))
+            elif len(observation.queries) == 1:
+                if case in {"changed_cursor", "duplicate_cursor", "extra_filter"}:
+                    if case == "changed_cursor":
+                        target = f"{ORDERS_HISTORY_PATH}?cursor=corrupted&limit={ORDERS_LIMIT}"
+                    elif case == "duplicate_cursor":
+                        cursor = dict(parse_qsl(request.url.query.decode("ascii")))["cursor"]
+                        target += "&" + urlencode({"cursor": cursor})
+                    else:
+                        target += "&instrument=EURUSD"
+                    headers = Headers(signer.get_headers(target))
+                elif case == "changed_encoding":
+                    target = target.replace("+", "%20")
+                    assert target != request.url.raw_path.decode("ascii")
+                elif case == "bad_signature":
+                    del headers["exn-sign"]
+                    headers["exn-sign"] = "invalid"
+        response = script.process_request(ws, Request(target, headers))
+        assert response is not None
+        return httpx.Response(response.status_code, content=response.body)
+
+    monkeypatch.setattr(
+        httpx, "AsyncHTTPTransport", Mock(return_value=httpx.MockTransport(dispatch))
+    )
+    if case == "extra_request":
+        run_history = transport.run_python_orders_history
+
+        async def run_history_with_extra_request(client: AsyncExnessClient) -> dict[str, object]:
+            result = await run_history(client)
+            assert result["outcome"] == "ProtocolError: repeated continuation cursor"
+            with pytest.raises(ExnessError):
+                await client.get_orders_history(
+                    cursor=ORDERS_QUERIES[1]["cursor"], limit=ORDERS_LIMIT
+                )
+            return result
+
+        monkeypatch.setattr(transport, "run_python_orders_history", run_history_with_extra_request)
+
+    async def driver() -> dict[str, object]:
+        return await transport.run_python(script.origin, tls, scenario)
+
+    if failure is None:
+        result = await transport.observe(script, scenario, "Python", driver)
+        compare_transcripts(scenario, result, EXPECTED[scenario])
+    else:
+        with pytest.raises(transport.CheckError, match=f"{scenario}: Python: {failure}"):
+            await transport.observe(script, scenario, "Python", driver)
+
+    assert script.active is None
+    assert observation is not None
+    assert observation.paths == [DISCOVERY_PATH, *([ORDERS_HISTORY_PATH] * pages)]
+    assert observation.queries == list(ORDERS_QUERIES[:pages])
+
+
 def contract_validator(schema: str) -> Draft202012Validator:
     contract_path = transport.ROOT / "contracts/trading.public.yaml"
     contract = yaml.safe_load(contract_path.read_text())
@@ -418,6 +521,16 @@ def test_hmr_frames_match_pinned_schema() -> None:
     snapshot.validate(json.loads(script.hmr_snapshot))
     snapshot.validate(json.loads(script.hmr_empty_snapshot))
     contract_validator("WSHmrUpdateEvent").validate(json.loads(script.hmr_update))
+
+
+def test_order_history_pages_match_pinned_schema() -> None:
+    validator = contract_validator("OrdersHistoryResponse")
+    first, second = (json.loads(page) for page in transport.FixtureServer().orders_pages)
+    for page in (first, second):
+        validator.validate(page)
+        assert page["has_more"] is True
+        assert page["next_cursor"] == ORDERS_QUERIES[1]["cursor"]
+    assert [page["items"][0]["order"]["order_id"] for page in (first, second)] == ["1002", "1003"]
 
 
 @pytest.mark.anyio
