@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import socket
 import ssl
@@ -23,6 +24,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from ipaddress import IPv4Address
 from pathlib import Path
+from urllib.parse import parse_qsl
 
 import httpx
 from cryptography import x509
@@ -56,6 +58,10 @@ from tools.transport_transcript import (
     DISCOVERY_PATH,
     OPEN_ORDER,
     OPERATION_STATUS_PATH,
+    ORDERS_FROM,
+    ORDERS_HISTORY_PATH,
+    ORDERS_LIMIT,
+    ORDERS_QUERIES,
     POSITIONS_PATH,
     TICKS_PATH,
     TRADING_PATH,
@@ -91,6 +97,7 @@ class WireTranscript:
     scenario: Scenario
     write: WriteWire | None = None
     paths: list[str] = field(default_factory=list)
+    queries: list[dict[str, str]] = field(default_factory=list)
     subscriptions: list[object] = field(default_factory=list)
     subscription_ids: set[str] = field(default_factory=set)
     completed: int = 0
@@ -111,6 +118,10 @@ class FixtureServer:
         self.origin = ""
         self.active: WireTranscript | None = None
         self.account = (FIXTURES / "account.json").read_text(encoding="utf-8")
+        first_orders_page = (FIXTURES / "orders.json").read_text(encoding="utf-8")
+        second_orders_page = json.loads(first_orders_page)
+        second_orders_page["items"][0]["order"]["order_id"] = "1003"
+        self.orders_pages = (first_orders_page, json.dumps(second_orders_page))
         self.tick = (FIXTURES / "tick.json").read_text(encoding="utf-8")
         self.snapshot = (FIXTURES / "trading_snapshot.json").read_text(encoding="utf-8")
         self.partial_close = (FIXTURES / "transaction_partial_close.json").read_text(
@@ -143,6 +154,8 @@ class FixtureServer:
         body = self.account
         if request.path == DISCOVERY_PATH:
             body = json.dumps({"access_point": self.origin, "account_id": ACCOUNT})
+        elif wire.scenario is Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
+            body = self.orders_pages[len(wire.queries) - 1]
         response = ws.respond(HTTPStatus.OK, body)
         del response.headers["Content-Type"]
         response.headers["Content-Type"] = "application/json"
@@ -151,15 +164,24 @@ class FixtureServer:
     def record_request(self, wire: WireTranscript, request: Request) -> None:
         if wire.write is not None and wire.write.receipt is None:
             raise CheckError("recovery stream started before the verified POST receipt")
-        limits = {DISCOVERY_PATH: 1, wire.upgrade_path: wire.expected_connections}
-        if wire.scenario is Scenario.REST_TICKS:
-            limits[ACCOUNT_PATH] = 2
-        if request.path not in limits:
+        target = request.path
+        path = target
+        raw_query = ""
+        limits = {DISCOVERY_PATH: 1}
+        if wire.scenario is Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
+            limits[ORDERS_HISTORY_PATH] = len(ORDERS_QUERIES)
+            if target != DISCOVERY_PATH:
+                path, _, raw_query = target.partition("?")
+        else:
+            limits[wire.upgrade_path] = wire.expected_connections
+            if wire.scenario is Scenario.REST_TICKS:
+                limits[ACCOUNT_PATH] = 2
+        if path not in limits:
             raise CheckError("unexpected request target")
-        if wire.paths.count(request.path) >= limits[request.path]:
+        if wire.paths.count(path) >= limits[path]:
             raise CheckError("unexpected extra request")
         upgrade = request.headers.get_all("Upgrade")
-        if request.path == wire.upgrade_path:
+        if path == wire.upgrade_path:
             if [value.lower() for value in upgrade] != ["websocket"]:
                 raise CheckError("stream request missing WebSocket upgrade")
         elif upgrade:
@@ -169,10 +191,14 @@ class FixtureServer:
         # The websockets HTTP parser admits only bodyless GET requests. Its
         # request.path preserves the raw target, including the query string.
         try:
-            verify_request("GET", request.path, request.headers)
+            verify_request("GET", target, request.headers)
         except ValueError:
             raise CheckError("invalid signature for received request") from None
-        wire.paths.append(request.path)
+        if path == ORDERS_HISTORY_PATH:
+            if not wire.paths or wire.paths[0] != DISCOVERY_PATH:
+                raise CheckError("order history requested before discovery")
+            wire.queries.append(orders_query(raw_query, len(wire.queries)))
+        wire.paths.append(path)
 
     async def handle_websocket(self, ws: ServerConnection) -> None:
         wire = self.active
@@ -241,6 +267,25 @@ class FixtureServer:
         except ConnectionClosed:
             return
         raise CheckError("unexpected extra WebSocket message")
+
+
+def orders_query(raw_query: str, page: int) -> dict[str, str]:
+    try:
+        if re.search(r"%(?![0-9a-fA-F]{2})", raw_query):
+            raise ValueError
+        pairs = parse_qsl(raw_query, keep_blank_values=True, strict_parsing=True, errors="strict")
+        query = dict(pairs)
+        if len(query) != len(pairs):
+            raise ValueError
+        if page == 0 and "from" in query:
+            start = datetime.fromisoformat(query["from"])
+            if start == ORDERS_FROM:
+                query["from"] = ORDERS_FROM.isoformat()
+    except ValueError:
+        raise CheckError("invalid order history query") from None
+    if query != ORDERS_QUERIES[page]:
+        raise CheckError("unexpected order history query")
+    return query
 
 
 @dataclass
@@ -499,6 +544,8 @@ async def run_python(
         async with make_client(origin) as client:
             if scenario is Scenario.REST_TICKS:
                 return await run_python_ticks(client, tls)
+            if scenario is Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
+                return await run_python_orders_history(client)
             if scenario in TRADING_RECONNECT_SCENARIOS:
                 return await run_python_trading(client, tls, scenario)
             if scenario in HMR_SCENARIOS:
@@ -524,6 +571,28 @@ async def run_python(
         return report
     except (ExnessError, StopAsyncIteration):
         raise CheckError("SDK did not complete the scenario") from None
+
+
+async def run_python_orders_history(client: AsyncExnessClient) -> dict[str, object]:
+    order_ids: list[str] = []
+    async with aclosing(
+        client.iter_orders_history(
+            from_time=ORDERS_FROM, instrument=INSTRUMENT, order_state="filled", limit=ORDERS_LIMIT
+        )
+    ) as orders:
+        try:
+            async for item in orders:
+                order_ids.append(item.order.order_id)
+        except ProtocolError as error:
+            if str(error) != "History returned a repeated continuation cursor":
+                raise CheckError("unexpected order history protocol error") from None
+            if await anext(orders, None) is not None:
+                raise CheckError("unexpected order history item after protocol error") from None
+            return {
+                "order_ids": order_ids,
+                "outcome": "ProtocolError: repeated continuation cursor",
+            }
+    raise CheckError("expected a repeated continuation cursor error")
 
 
 async def submit_open_position(client: AsyncExnessClient, key: str) -> AckResponse:
@@ -778,6 +847,8 @@ async def run_go(
             fields = {"outcome"}
         case Scenario.ACKNOWLEDGED_OPEN:
             fields = {"ack", "outcome"}
+        case Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
+            fields = {"order_ids", "outcome"}
         case _:
             fields = {"events", "outcome"}
     if not isinstance(result, dict) or set(result) != fields:
@@ -808,7 +879,7 @@ async def observe(
     try:
         async with asyncio.timeout(PEER_TIMEOUT):
             result = await driver()
-            if stream is not None:
+            if stream is not None and scenario is not Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
                 if stream.paths.count(stream.upgrade_path) != stream.expected_connections:
                     raise CheckError("missing WebSocket handshake")
                 await stream.closed.wait()
@@ -833,8 +904,11 @@ async def observe(
         if scenario is Scenario.ACKNOWLEDGED_OPEN:
             result["status_responses"] = write.status_responses
     if stream is not None:
-        paths_key = "paths" if write is None else "stream_paths"
-        result = {**result, paths_key: stream.paths, "subscriptions": stream.subscriptions}
+        if scenario is Scenario.ORDERS_HISTORY_REPEATED_CURSOR:
+            result = {**result, "paths": stream.paths, "queries": stream.queries}
+        else:
+            paths_key = "paths" if write is None else "stream_paths"
+            result = {**result, paths_key: stream.paths, "subscriptions": stream.subscriptions}
     return result
 
 

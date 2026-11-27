@@ -173,3 +173,4 @@ Worker Board completed implementation, verification and independent review for e
 - [x] [Verify lost-ACK recovery by matching a transaction without replaying the write](https://github.com/angru/exness-python/issues/20).
 - [x] [Compare acknowledged open-position submission and bounded status polling](https://github.com/angru/exness-python/issues/22).
 - [x] [Compare HMR reconnect with a fresh empty snapshot and rejection of updates before a snapshot](https://github.com/angru/exness-python/issues/24).
+- [x] [Compare signed order history pagination and repeated-cursor termination](https://github.com/angru/exness-python/issues/26).

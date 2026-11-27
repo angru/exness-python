@@ -95,6 +95,8 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	switch scenario {
 	case "rest_ticks":
 		return runTicks(ctx, client)
+	case "orders_history_repeated_cursor":
+		return runOrdersHistory(ctx, client)
 	case "trading_recovery":
 		return runTrading(ctx, client, 1)
 	case "trading_missing_snapshot":
@@ -136,6 +138,42 @@ func run(origin, certPath, vectorPath, scenario, streamOrigin string) error {
 	default:
 		return errors.New("unknown scenario")
 	}
+}
+
+func runOrdersHistory(ctx context.Context, client *exness.Client) error {
+	from := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	query := exness.OrderHistoryQuery{
+		HistoryQuery: exness.HistoryQuery{
+			From:       &from,
+			Instrument: "EURUSD",
+			Limit:      7,
+		},
+		OrderState: exness.OrderFilled,
+	}
+	orderIDs := []string{}
+	outcome := ""
+	for item, err := range client.IterOrdersHistory(ctx, query) {
+		if outcome != "" {
+			return errors.New("unexpected order history item after protocol error")
+		}
+		if err == nil {
+			orderIDs = append(orderIDs, item.Order.OrderID)
+			continue
+		}
+		var protocol *exness.ProtocolError
+		if !errors.As(err, &protocol) || item.Order.OrderID != "" {
+			return errors.New("unexpected order history result")
+		}
+		message := strings.ToLower(protocol.Error())
+		if !strings.Contains(message, "repeat") || !strings.Contains(message, "cursor") {
+			return errors.New("unexpected order history protocol error")
+		}
+		outcome = "ProtocolError: repeated continuation cursor"
+	}
+	if outcome == "" {
+		return errors.New("expected a repeated continuation cursor error")
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"order_ids": orderIDs, "outcome": outcome})
 }
 
 func submitOpenPosition(ctx context.Context, client *exness.Client, key string) (*exness.AckResponse, error) {

@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from cryptography.exceptions import InvalidSignature
@@ -16,6 +17,7 @@ PUBLIC_KEY = bytes.fromhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af02
 ACCOUNT = "123456"
 DISCOVERY_PATH = f"/v1/trading/access-point?account_id={ACCOUNT}"
 ACCOUNT_PATH = f"/v1/configuration/accounts/{ACCOUNT}/account"
+ORDERS_HISTORY_PATH = f"/v1/history/accounts/{ACCOUNT}/orders"
 TICKS_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/ticks"
 TRADING_PATH = f"/v1/server-events/accounts/{ACCOUNT}/ws/events"
 POSITIONS_PATH = f"/v1/trading/accounts/{ACCOUNT}/positions"
@@ -24,6 +26,17 @@ OPERATION_STATUS_PATH = "/v1/trading/accounts/123456/operations/000789"
 WRITE_KEY = "transport-lost-ack-0001"
 ACKNOWLEDGED_OPEN_KEY = "transport-acknowledged-open-0001"
 OPEN_ORDER = {"instrument": "EURUSD", "side": "buy", "volume": "0.01"}
+ORDERS_FROM = datetime(2026, 1, 1, tzinfo=UTC)
+ORDERS_LIMIT = 7
+ORDERS_QUERIES = (
+    {
+        "from": ORDERS_FROM.isoformat(),
+        "instrument": "EURUSD",
+        "order_state": "filled",
+        "limit": "7",
+    },
+    {"cursor": "opaque+/= &%?Ж", "limit": "7"},
+)
 
 
 class Scenario(StrEnum):
@@ -35,6 +48,7 @@ class Scenario(StrEnum):
     ACKNOWLEDGED_OPEN = "acknowledged_open"
     HMR_RECOVERY = "hmr_recovery"
     HMR_MISSING_SNAPSHOT = "hmr_missing_snapshot"
+    ORDERS_HISTORY_REPEATED_CURSOR = "orders_history_repeated_cursor"
 
 
 EXPECTED_TICKS = {
@@ -117,6 +131,12 @@ LOST_ACK_WIRE = {
 }
 EXPECTED: dict[Scenario, dict[str, object]] = {
     Scenario.REST_TICKS: EXPECTED_TICKS,
+    Scenario.ORDERS_HISTORY_REPEATED_CURSOR: {
+        "paths": [DISCOVERY_PATH, ORDERS_HISTORY_PATH, ORDERS_HISTORY_PATH],
+        "queries": list(ORDERS_QUERIES),
+        "order_ids": ["1002"],
+        "outcome": "ProtocolError: repeated continuation cursor",
+    },
     Scenario.TRADING_RECOVERY: {
         **TRADING_WIRE,
         "events": [

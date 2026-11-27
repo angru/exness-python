@@ -26,6 +26,18 @@ def test_transcripts_reject_mismatch_without_reporting_values() -> None:
     compare_transcripts(Scenario.REST_TICKS, expected, expected)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"), [("order_ids", ["1002", "1003"]), ("outcome", "ProtocolError")]
+)
+def test_order_history_requires_only_first_order_and_repeated_cursor_outcome(
+    field: str, value: object
+) -> None:
+    scenario = Scenario.ORDERS_HISTORY_REPEATED_CURSOR
+    expected = EXPECTED[scenario]
+    with pytest.raises(ValueError, match=f"{scenario}: Go transcript mismatch: {field}"):
+        compare_transcripts(scenario, expected, {**expected, field: value})
+
+
 def test_recovery_rejects_stale_snapshot_even_when_peers_agree() -> None:
     scenario = Scenario.TRADING_RECOVERY
     wrong = copy.deepcopy(EXPECTED[scenario])

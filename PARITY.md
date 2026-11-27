@@ -102,6 +102,7 @@ verify the synthetic signature against the received request target.
 | Scenario | Expected public observations |
 | --- | --- |
 | `rest_ticks` | Two account reads after one discovery, then an EURUSD tick followed by `ProtocolError` for a malformed frame. |
+| `orders_history_repeated_cursor` | One discovery and two order history reads. The public iterators yield order `1002` and then a repeated-cursor `ProtocolError`. The second page contains order `1003`. Yielding it or making a third history request fails the check. |
 | `trading_recovery` | Snapshot, partial-close transaction, one gap for close `1012`, a fresh snapshot with a different balance, and a balance transaction. Close `1000` ends the stream normally. |
 | `trading_missing_snapshot` | The same initial snapshot, transaction and gap. The second connection sends the same valid balance transaction before a snapshot, yielding `ProtocolError`. The consumer must see no additional event or connection, with one reconnect still available. |
 | `hmr_recovery` | A nonempty HMR snapshot, one gap for close `1012`, a fresh snapshot with an empty `periods` list, and a valid HMR update. Close `1000` ends the stream normally. |
@@ -119,6 +120,16 @@ values and outcome, then compares the transcripts with each other. The report
 excludes generated request IDs, timestamps, ports, credentials and signed headers.
 The trading scenarios reuse the shared fixtures, with the replacement snapshot
 derived locally from the shared snapshot by changing its balance.
+
+The order history scenario reuses `orders.json` for both pages, changing only
+the second order ID. The listener verifies each signature against the raw
+request target, including its original query bytes. It then checks the first
+query for the January 1, 2026 UTC start, `EURUSD`, state `filled`, and limit `7`.
+The continuation query must carry exactly the same limit and the fixture's
+opaque cursor, including its punctuation, space, and Unicode. Duplicate keys
+and extra filters fail the check. The transcripts compare decoded query values,
+with the date normalized to a UTC timestamp. An extra history request fails
+the check even if the consumer suppresses the HTTP error.
 
 The HMR scenarios reuse `hmr_snapshot`, `hmr_empty_snapshot` and `hmr_update`.
 The check compares the gap attempt and close code, period identifiers, event types,
