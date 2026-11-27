@@ -3,6 +3,7 @@ import json
 import ssl
 import subprocess
 from http import HTTPStatus
+from http.client import parse_headers
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
@@ -24,17 +25,17 @@ from exness import (
     AsyncExnessClient,
     Credentials,
     ExnessError,
-    OperationReference,
     TransportError,
     UnknownOutcomeError,
 )
 from exness.auth import _Signer
-from exness.models import AckResponse, OperationStatus
+from exness.models import AckResponse
 from exness.requests import OpenPositionRequest
 from tools import check_transport as transport
 from tools.transport_transcript import (
     ACCOUNT,
     ACCOUNT_PATH,
+    ACKNOWLEDGED_OPEN_KEY,
     DISCOVERY_PATH,
     EXPECTED,
     OPERATION_STATUS_PATH,
@@ -48,8 +49,9 @@ from tools.transport_transcript import (
     compare_transcripts,
 )
 
-WRITE_SCENARIOS = (Scenario.LOST_ACK, Scenario.LOST_ACK_RECOVERY, Scenario.ACKNOWLEDGED_OPEN)
-LOOPBACK_SCENARIOS = [scenario for scenario in Scenario if scenario not in WRITE_SCENARIOS]
+LOOPBACK_SCENARIOS = [
+    scenario for scenario in Scenario if scenario not in transport.WRITE_SCENARIOS
+]
 
 
 @pytest.mark.anyio
@@ -82,7 +84,9 @@ async def test_each_tls_listener_serves_separate_python_runs(
     monkeypatch.setattr(transport, "run_go", second_peer)
     assert await transport.compare_clients(tmp_path / "driver", tmp_path) == EXPECTED
     stream_origins = {origin for origin, scenario, _ in runs if scenario in LOOPBACK_SCENARIOS}
-    write_origins = {origin for origin, scenario, _ in runs if scenario in WRITE_SCENARIOS}
+    write_origins = {
+        origin for origin, scenario, _ in runs if scenario in transport.WRITE_SCENARIOS
+    }
     assert len(stream_origins) == len(write_origins) == 1
     assert stream_origins.isdisjoint(write_origins)
     assert {stream for _, scenario, stream in runs if scenario is Scenario.LOST_ACK_RECOVERY} == (
@@ -295,31 +299,54 @@ async def test_lost_ack_http_receipt_and_python_outcome_without_sockets(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    ("case", "failure", "posts", "polls"),
+    ("scenario", "case", "failure", "posts", "polls"),
     [
-        ("valid", None, 1, 2),
-        ("wrong_target", "unexpected operation status target", 1, 0),
-        ("wrong_id", "unexpected operation status target", 1, 0),
-        ("before_ack", "operation status requested before acknowledgement", 1, 2),
-        ("extra_poll", "unexpected extra operation status request", 1, 2),
-        ("duplicate", "duplicate POST", 2, 2),
+        (Scenario.ACKNOWLEDGED_OPEN, "valid", None, 1, 2),
+        (Scenario.ACKNOWLEDGED_OPEN, "wrong_target", "unexpected operation status target", 1, 0),
+        (Scenario.ACKNOWLEDGED_OPEN, "wrong_id", "unexpected operation status target", 1, 0),
+        (
+            Scenario.ACKNOWLEDGED_OPEN,
+            "before_ack",
+            "operation status requested before acknowledgement",
+            1,
+            2,
+        ),
+        (
+            Scenario.ACKNOWLEDGED_OPEN,
+            "extra_poll",
+            "unexpected extra operation status request",
+            1,
+            2,
+        ),
+        (Scenario.ACKNOWLEDGED_OPEN, "duplicate", "duplicate POST", 2, 2),
+        (Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED, "valid", None, 1, 2),
+        (Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED, "changed_error", None, 1, 2),
+        (
+            Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED,
+            "extra_poll",
+            "unexpected extra operation status request",
+            1,
+            2,
+        ),
+        (Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED, "duplicate", "duplicate POST", 2, 2),
     ],
 )
 async def test_acknowledged_open_without_sockets(
     monkeypatch: pytest.MonkeyPatch,
     credentials: Credentials,
+    scenario: Scenario,
     case: str,
     failure: str | None,
     posts: int,
     polls: int,
 ) -> None:
-    scenario = Scenario.ACKNOWLEDGED_OPEN
     server = Mock(spec=transport.WriteServer, origin="https://127.0.0.1", active=None)
     tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     signer = _Signer(credentials)
     observation: transport.WriteWire | None = None
     ack_schema = contract_validator("AckResponse")
     status_schema = contract_validator("OperationStatusResponse")
+    error_schema = contract_validator("ErrorResponse")
 
     def status_request(target: str) -> httpx.Request:
         return httpx.Request("GET", server.origin + target, headers=signer.get_headers(target))
@@ -336,61 +363,78 @@ async def test_acknowledged_open_without_sockets(
             wrong_target = f"/v1/trading/accounts/123456/operations/{wrong_id}"
             assert exchange_http(server, status_request(wrong_target)) == b""
             raise httpx.RemoteProtocolError("synthetic rejected request")
-        if case == "extra_poll" and observation.status_responses == ["pending", "confirmed"]:
-            assert request.url.path == OPERATION_STATUS_PATH
-            assert exchange_http(server, request) == b""
-            raise httpx.RemoteProtocolError("synthetic rejected extra poll")
-
         raw_response = exchange_http(server, request)
+        if not raw_response:
+            raise httpx.RemoteProtocolError("synthetic rejected request")
         headers, body = raw_response.split(b"\r\n\r\n", 1)
-        code = int(headers.split(b" ", 2)[1])
+        status_line, _, header_fields = headers.partition(b"\r\n")
+        code = int(status_line.split(b" ", 2)[1])
+        response_headers = dict(parse_headers(BytesIO(header_fields)).items())
         if request.method == "POST":
             assert code == HTTPStatus.ACCEPTED
             ack_schema.validate(json.loads(body))
-            if case == "duplicate":
-                assert exchange_http(server, request) == b""
+        elif code == HTTPStatus.TOO_MANY_REQUESTS:
+            assert request.url.path == OPERATION_STATUS_PATH
+            assert response_headers["Retry-After"] == "7"
+            error_schema.validate(json.loads(body))
+            if case == "changed_error":
+                code = HTTPStatus.SERVICE_UNAVAILABLE
+                response_headers["Retry-After"] = "8"
         else:
             assert code == HTTPStatus.OK
             if request.url.path == OPERATION_STATUS_PATH:
                 status_schema.validate(json.loads(body))
-        return httpx.Response(code, content=body)
+        return httpx.Response(code, headers=response_headers, content=body)
 
     monkeypatch.setattr(
         httpx, "AsyncHTTPTransport", Mock(return_value=httpx.MockTransport(dispatch))
     )
-    if case == "extra_poll":
-        wait_operation = AsyncExnessClient.wait_operation
+    if case in ("extra_poll", "duplicate"):
+        run_acknowledged_open = transport.run_python_acknowledged_open
 
-        async def wait_with_extra_poll(
-            client: AsyncExnessClient,
-            reference: OperationReference,
-            *,
-            timeout: float,
-            poll_interval: float,
-        ) -> OperationStatus:
-            result = await wait_operation(
-                client, reference, timeout=timeout, poll_interval=poll_interval
-            )
-            assert result.status == "confirmed" and reference.operation_id is not None
-            with pytest.raises(TransportError):
-                await client.get_operation_status(reference.operation_id)
+        async def run_with_extra_request(
+            client: AsyncExnessClient, scenario: Scenario
+        ) -> dict[str, object]:
+            result = await run_acknowledged_open(client, scenario)
+            assert result["outcome"] == EXPECTED[scenario]["outcome"]
+            if case == "extra_poll":
+                with pytest.raises(TransportError):
+                    await client.get_operation_status("000789")
+            else:
+                with pytest.raises(UnknownOutcomeError):
+                    await transport.submit_open_position(client, ACKNOWLEDGED_OPEN_KEY)
             return result
 
-        monkeypatch.setattr(AsyncExnessClient, "wait_operation", wait_with_extra_poll)
+        monkeypatch.setattr(transport, "run_python_acknowledged_open", run_with_extra_request)
 
     async def driver() -> dict[str, object]:
         return await transport.run_python(server.origin, tls, scenario)
 
     if failure is None:
         result = await transport.observe(None, scenario, "Python", driver, https=server)
-        compare_transcripts(scenario, result, EXPECTED[scenario])
+        if case == "changed_error":
+            assert result["outcome"] == {
+                "error": "APIError",
+                "status_code": 503,
+                "retry_after": "8",
+            }
+            with pytest.raises(ValueError, match="Python transcript mismatch: outcome"):
+                compare_transcripts(scenario, result, result)
+            with pytest.raises(ValueError, match="Go transcript mismatch: outcome"):
+                compare_transcripts(scenario, EXPECTED[scenario], result)
+        else:
+            compare_transcripts(scenario, result, EXPECTED[scenario])
     else:
         with pytest.raises(transport.CheckError, match=f"{scenario}: Python: {failure}"):
             await transport.observe(None, scenario, "Python", driver, https=server)
 
     assert server.active is None
     assert observation is not None and observation.post_count == posts
-    assert observation.status_responses == ["pending", "confirmed"][:polls]
+    expected_statuses = [
+        "pending",
+        429 if scenario is Scenario.ACKNOWLEDGED_OPEN_RATE_LIMITED else "confirmed",
+    ]
+    assert observation.status_responses == expected_statuses[:polls]
     assert observation.paths == [DISCOVERY_PATH, POSITIONS_PATH, *([OPERATION_STATUS_PATH] * polls)]
 
 
